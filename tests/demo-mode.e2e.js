@@ -2,7 +2,7 @@
 const { chromium } = require('playwright');
 const path = require('path'); const fs = require('fs');
 const OUT = path.join(__dirname, 'shots'); fs.mkdirSync(OUT, { recursive: true });
-const URL = 'file://' + path.resolve(__dirname, '../index.html');
+const URL = 'file://' + path.resolve(__dirname, '../index.html') + '?demo';
 let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
 (async () => {
   const b = await chromium.launch();
