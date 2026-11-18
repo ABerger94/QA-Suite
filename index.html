@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QA Lab Suite</title>
+<meta name="description" content="Connected quality-assurance workspace: environmental monitoring, finished product release, incoming COA control, holds and CAPA, trending, audit packet and compliance checklist.">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f3f3f0; --surface:#fcfcfb; --surface-2:#efefeb; --border:#d9d9d3; --grid:#e4e4df;
+  --text:#0b0b0b; --text-2:#52514e; --muted:#76756f;
+  --accent:#2a78d6; --accent-ink:#ffffff; --accent-soft:#e3eefb;
+  --s1:#2a78d6; --s2:#eb6834;
+  --good:#0ca30c; --good-ink:#0b6e0b; --good-soft:#e2f4e2;
+  --warn:#fab219; --warn-ink:#7a5000; --warn-soft:#fdf1d6;
+  --serious:#ec835a; --serious-ink:#9a3d17; --serious-soft:#fce7de;
+  --crit:#d03b3b; --crit-ink:#a92626; --crit-soft:#fae3e3;
+  --info-soft:#e8e8e3;
+  --shadow:0 1px 2px rgba(0,0,0,.05),0 1px 1px rgba(0,0,0,.03);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#121211; --surface:#1a1a19; --surface-2:#232321; --border:#3a3a37; --grid:#2c2c2a;
+    --text:#f0efec; --text-2:#c3c2b7; --muted:#9a998f;
+    --accent:#3987e5; --accent-ink:#ffffff; --accent-soft:#1b2c42;
+    --s1:#3987e5; --s2:#d95926;
+    --good:#0ca30c; --good-ink:#5fd35f; --good-soft:#15301a;
+    --warn:#fab219; --warn-ink:#fcc755; --warn-soft:#3a2e12;
+    --serious:#ec835a; --serious-ink:#f3a383; --serious-soft:#3b2219;
+    --crit:#d03b3b; --crit-ink:#f08585; --crit-soft:#3d1c1c;
+    --info-soft:#2a2a28;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#121211; --surface:#1a1a19; --surface-2:#232321; --border:#3a3a37; --grid:#2c2c2a;
+  --text:#f0efec; --text-2:#c3c2b7; --muted:#9a998f;
+  --accent:#3987e5; --accent-ink:#ffffff; --accent-soft:#1b2c42;
+  --s1:#3987e5; --s2:#d95926;
+  --good:#0ca30c; --good-ink:#5fd35f; --good-soft:#15301a;
+  --warn:#fab219; --warn-ink:#fcc755; --warn-soft:#3a2e12;
+  --serious:#ec835a; --serious-ink:#f3a383; --serious-soft:#3b2219;
+  --crit:#d03b3b; --crit-ink:#f08585; --crit-soft:#3d1c1c;
+  --info-soft:#2a2a28;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%;overflow-x:hidden}
+a{color:var(--accent)}
+h1,h2,h3{margin:0;line-height:1.25}
+h2{font-size:18px}
+h3{font-size:15px}
+.top{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--border)}
+.bar{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding:10px 16px 6px;max-width:1240px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:8px;margin-right:auto;font-weight:700;font-size:16px;white-space:nowrap}
+.brand .logo{width:26px;height:26px;border-radius:7px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:800}
+.search{position:relative;flex:1 1 100%;order:3}
+@media (min-width:760px){.search{flex:0 1 360px;order:0}}
+.search input{padding-left:32px}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.results{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);max-height:60vh;overflow:auto;z-index:40}
+.results button{display:block;width:100%;text-align:left;border:0;background:none;padding:8px 12px;color:var(--text);font:inherit;cursor:pointer;border-bottom:1px solid var(--grid)}
+.results button:hover,.results button:focus{background:var(--surface-2);outline:none}
+.results .k{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.tabs{display:flex;gap:2px;overflow-x:auto;padding:0 12px;max-width:1240px;margin:0 auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs a{flex:0 0 auto;padding:9px 10px 10px;text-decoration:none;color:var(--text-2);font-size:14px;font-weight:600;border-bottom:3px solid transparent;white-space:nowrap}
+.tabs a.on{color:var(--text);border-bottom-color:var(--accent)}
+.tabs a .dot{display:inline-block;min-width:18px;padding:0 5px;margin-left:5px;border-radius:9px;background:var(--crit);color:#fff;font-size:11px;line-height:18px;text-align:center}
+main{max-width:1240px;margin:0 auto;padding:16px}
+.samplebar{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;background:var(--warn-soft);color:var(--warn-ink);border:1px dashed var(--warn);border-radius:10px;padding:8px 12px;margin-bottom:14px;font-size:13px}
+.samplebar b{letter-spacing:.05em}
+.pagehead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.pagehead p{margin:2px 0 0;color:var(--text-2);font-size:13px}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:38px;padding:7px 13px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;white-space:nowrap}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.danger{color:var(--crit-ink);border-color:var(--crit)}
+.btn.warn{background:var(--crit);border-color:var(--crit);color:#fff}
+.btn.sm{min-height:30px;padding:3px 9px;font-size:13px}
+.btn.ghost{border-color:transparent;background:none;white-space:normal;text-align:left}
+.btn{max-width:100%}
+.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}
+@media (min-width:760px){.stats{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}}
+.stat{display:block;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;text-decoration:none;color:var(--text);box-shadow:var(--shadow);border-top:3px solid var(--border)}
+a.stat:hover{border-color:var(--accent)}
+.stat .n{font-size:26px;font-weight:750;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .l{font-size:13px;font-weight:600;color:var(--text-2)}
+.stat .s{font-size:12px;color:var(--muted);margin-top:2px}
+.stat.t-crit{border-top-color:var(--crit)}.stat.t-warn{border-top-color:var(--warn)}.stat.t-good{border-top-color:var(--good)}.stat.t-info{border-top-color:var(--accent)}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;box-shadow:var(--shadow);min-width:0}
+.panel>.ph{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.panel>.ph p{margin:2px 0 0;font-size:13px;color:var(--text-2)}
+.cols{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+@media (min-width:980px){.cols{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.cols.wide-left{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}}
+.cols>.panel{margin-bottom:0}
+.stack>*+*{margin-top:14px}
+.list{display:flex;flex-direction:column;gap:8px}
+.rec{border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--surface);display:flex;flex-wrap:wrap;gap:6px 12px;align-items:flex-start;justify-content:space-between}
+.rec.flag-crit{border-left:4px solid var(--crit)}.rec.flag-warn{border-left:4px solid var(--warn)}.rec.flag-good{border-left:4px solid var(--good)}
+.rec .main{min-width:0;flex:1 1 260px}
+.rec .t{font-weight:650;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.rec .m{font-size:13px;color:var(--text-2);margin-top:2px}
+.rec .acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.tiny{font-size:12px}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:650;line-height:20px;white-space:nowrap;background:var(--info-soft);color:var(--text-2)}
+.pill.good{background:var(--good-soft);color:var(--good-ink)}
+.pill.warn{background:var(--warn-soft);color:var(--warn-ink)}
+.pill.serious{background:var(--serious-soft);color:var(--serious-ink)}
+.pill.crit{background:var(--crit-soft);color:var(--crit-ink)}
+.pill.info{background:var(--accent-soft);color:var(--accent)}
+.sample{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.07em;color:var(--warn-ink);border:1px dashed var(--warn);padding:0 5px;border-radius:4px;line-height:16px;vertical-align:middle}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{display:inline-flex;gap:4px;align-items:center;font-size:12px;padding:1px 7px;border-radius:6px;background:var(--surface-2);color:var(--text-2);font-variant-numeric:tabular-nums}
+.chip.oos{background:var(--crit-soft);color:var(--crit-ink);font-weight:700}
+.chip.miss{background:none;border:1px dashed var(--border)}
+.zones{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+@media (min-width:640px){.zones{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1100px){.zones{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.zone{border:1px solid var(--border);border-radius:10px;padding:10px;background:var(--surface-2)}
+.zone h3{font-size:13px;margin-bottom:2px}
+.zone .zd{font-size:11px;color:var(--muted);margin-bottom:8px}
+.site{display:block;width:100%;text-align:left;border:1px solid var(--border);border-radius:8px;background:var(--surface);padding:7px 9px;margin-top:6px;font:inherit;color:var(--text);cursor:pointer}
+.site:hover{border-color:var(--accent)}
+.site.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.site .sn{font-weight:600;font-size:13px}
+.site .sm{font-size:12px;color:var(--text-2);display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:2px}
+.tw{overflow-x:auto;max-width:100%}
+table.tbl{border-collapse:collapse;width:100%;font-size:13px}
+.tbl th,.tbl td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--grid);vertical-align:top}
+.tbl th{font-size:12px;color:var(--text-2);font-weight:650;white-space:nowrap}
+.tbl td.num,.tbl th.num{text-align:right;font-variant-numeric:tabular-nums}
+.filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--surface);color:var(--text-2);font:inherit;font-size:13px;font-weight:600;padding:5px 10px;cursor:pointer;min-height:32px}
+.seg button+button{border-left:1px solid var(--border)}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+input,select,textarea{font:inherit;font-size:15px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 10px;width:100%;min-height:40px}
+textarea{min-height:64px;resize:vertical}
+input[type=checkbox]{width:18px;height:18px;min-height:0;accent-color:var(--accent)}
+.filters select,.filters input{width:auto;max-width:100%;min-height:34px;font-size:14px;padding:4px 8px}
+.form{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+@media (min-width:640px){.form.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.form .full{grid-column:1/-1}}
+.fld>span{display:block;font-size:12px;font-weight:650;color:var(--text-2);margin-bottom:3px}
+.fld .hint{font-size:12px;color:var(--muted);margin-top:3px}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600}
+.sec{border-top:1px solid var(--border);padding-top:12px;margin-top:14px}
+.sec>h3{margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.gate{border-radius:10px;padding:10px 12px;margin-top:12px;border:1px solid var(--border);background:var(--surface-2)}
+.gate.ok{border-color:var(--good);background:var(--good-soft)}
+.gate.no{border-color:var(--crit);background:var(--crit-soft)}
+.gate h4{margin:0 0 6px;font-size:14px}
+.gate ul{margin:0;padding:0;list-style:none;font-size:13px}
+.gate li{display:flex;gap:6px;padding:2px 0}
+.gate li .i{width:16px;flex:0 0 16px;font-weight:800}
+.gate li.y .i{color:var(--good-ink)}.gate li.n .i{color:var(--crit-ink)}
+.err{background:var(--crit-soft);color:var(--crit-ink);border:1px solid var(--crit);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:14px}
+.err ul{margin:4px 0 0 18px;padding:0}
+.trow{display:grid;grid-template-columns:minmax(0,1fr) 120px 26px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--grid)}
+.trow .tn{font-size:14px;font-weight:600}
+.trow .ts{font-size:12px;color:var(--muted)}
+.trow .ti{font-weight:800;text-align:center}
+.trow .ti.ok{color:var(--good-ink)}.trow .ti.oos{color:var(--crit-ink)}.trow .ti.missing{color:var(--muted)}
+.trow.lab{grid-template-columns:minmax(0,1fr) 120px 120px 26px}
+.arow{display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px;align-items:start;padding:8px 0;border-bottom:1px solid var(--grid)}
+.arow .af{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
+@media (min-width:640px){.arow .af{grid-template-columns:minmax(0,2fr) minmax(0,1fr) 150px auto}}
+.arow input[type=checkbox]{margin-top:10px}
+.whys .why{display:grid;grid-template-columns:62px minmax(0,1fr);gap:8px;align-items:center;margin-bottom:6px}
+.whys .why b{font-size:13px;color:var(--text-2)}
+.fish{display:flex;flex-wrap:wrap;gap:6px}
+.fish label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:14px;cursor:pointer;background:var(--surface)}
+.fish label.on{border-color:var(--accent);background:var(--accent-soft)}
+.fish input{width:16px;height:16px}
+.steps{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.steps span{font-size:11px;font-weight:650;padding:2px 7px;border-radius:5px;background:var(--surface-2);color:var(--muted)}
+.steps span.done{background:var(--good-soft);color:var(--good-ink)}
+.steps span.cur{background:var(--accent-soft);color:var(--accent)}
+.signals{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+@media (min-width:760px){.signals{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.sig{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border);border-radius:10px;padding:9px 11px;background:var(--surface);text-align:left;font:inherit;color:var(--text);cursor:pointer;width:100%}
+.sig:hover{border-color:var(--accent)}
+.sig .ic{flex:0 0 24px;height:24px;border-radius:6px;display:grid;place-items:center;font-weight:800;font-size:13px}
+.sig.crit .ic{background:var(--crit-soft);color:var(--crit-ink)}
+.sig.warn .ic{background:var(--warn-soft);color:var(--warn-ink)}
+.sig.good .ic{background:var(--good-soft);color:var(--good-ink)}
+.sig .st{font-weight:650;font-size:14px}
+.sig .sd{font-size:12px;color:var(--text-2)}
+.feed{list-style:none;margin:0;padding:0}
+.feed li{display:grid;grid-template-columns:86px minmax(0,1fr);gap:8px;padding:7px 0;border-bottom:1px solid var(--grid);font-size:13px}
+.feed .fm{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.feed .ft{font-size:11px;color:var(--muted)}
+.empty{color:var(--muted);font-size:14px;padding:14px;text-align:center;border:1px dashed var(--border);border-radius:10px}
+.chart{position:relative;width:100%;min-height:200px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{font-family:inherit}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--text-2);margin-bottom:6px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.legend i.dash{background:none!important;border-top:2px dashed var(--muted);height:0}
+.legend i.dot{width:9px;height:9px;border-radius:50%}
+.legend i.bar{width:10px;height:10px;border-radius:2px}
+.tip{position:fixed;z-index:60;pointer-events:none;background:var(--text);color:var(--surface);font-size:12px;line-height:1.4;padding:6px 9px;border-radius:7px;max-width:260px;box-shadow:0 4px 14px rgba(0,0,0,.25);display:none}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:13px}
+.kv dt{color:var(--text-2)}.kv dd{margin:0;font-weight:600}
+details.data summary{cursor:pointer;font-size:13px;color:var(--text-2);margin-top:6px}
+dialog{border:0;padding:0;border-radius:14px;background:var(--surface);color:var(--text);width:min(780px,calc(100vw - 24px));max-height:calc(100dvh - 24px);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(10,10,10,.5)}
+@media (max-width:639px){dialog{width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;margin:0;border-radius:0}}
+.mwrap{display:flex;flex-direction:column;max-height:inherit;height:100%}
+@media (max-width:639px){.mwrap{height:100dvh}}
+.mhead{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.mhead h2{flex:1;font-size:17px}
+.mbody{padding:14px 16px;overflow:auto;flex:1}
+.mfoot{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;padding:10px 16px;border-top:1px solid var(--border);background:var(--surface-2)}
+.mfoot .left{margin-right:auto}
+.toasts{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:70;display:flex;flex-direction:column;gap:8px;width:min(520px,calc(100vw - 32px))}
+.toast{background:var(--text);color:var(--surface);border-radius:10px;padding:10px 12px;font-size:14px;display:flex;gap:10px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.toast.crit{background:var(--crit);color:#fff}
+.toast .tx{flex:1}
+.toast .btn{min-height:30px;padding:3px 10px;font-size:13px}
+.menu{position:relative}
+.menu .dd{position:absolute;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);min-width:240px;padding:6px;z-index:45}
+.menu .dd button{display:block;width:100%;text-align:left;background:none;border:0;padding:8px 10px;border-radius:6px;font:inherit;font-size:14px;color:var(--text);cursor:pointer}
+.menu .dd button:hover{background:var(--surface-2)}
+.menu .dd hr{border:0;border-top:1px solid var(--border);margin:4px 0}
+/* Audit packet */
+.packet{background:#fff;color:#111;border:1px solid var(--border);border-radius:6px;padding:22px 24px;max-width:860px;margin:0 auto;font-size:12.5px;line-height:1.4}
+.packet h1{font-size:19px}
+.packet h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1.5px solid #111;padding-bottom:2px;margin:14px 0 6px}
+.packet .phead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;border-bottom:3px solid #111;padding-bottom:8px}
+.packet .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;margin-top:8px}
+.packet .kpi{border:1px solid #bbb;border-radius:4px;padding:5px 7px}
+.packet .kpi b{display:block;font-size:17px}
+.packet .kpi span{font-size:10.5px;color:#444}
+.packet table{border-collapse:collapse;width:100%;font-size:11.5px}
+.packet th,.packet td{border-bottom:1px solid #ccc;padding:3px 5px;text-align:left;vertical-align:top}
+.packet th{font-size:10.5px;color:#333;background:#f2f2f2}
+.packet .two{display:grid;grid-template-columns:minmax(0,1fr);gap:0 18px}
+@media (min-width:700px){.packet .two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.packet .tw table{min-width:520px}
+.packet td.nw{white-space:nowrap}
+@media (max-width:640px){.packet{padding:14px 12px}}
+.packet .note{font-size:10.5px;color:#444;margin-top:10px;border-top:1px solid #ccc;padding-top:6px}
+.packet .smp{color:#7a5000;font-weight:800;letter-spacing:.06em}
+.packet .sig-line{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:16px;font-size:11px}
+.packet .sig-line div{border-top:1px solid #111;padding-top:3px}
+.packet .ok{color:#0b6e0b;font-weight:700}.packet .bad{color:#a92626;font-weight:700}
+.printonly{display:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media print{
+  :root{--bg:#fff;--surface:#fff;--text:#000;--text-2:#222;--muted:#444;--border:#bbb;--grid:#ddd;--surface-2:#f4f4f4}
+  body{background:#fff}
+  .top,.noprint,.toasts,dialog,.samplebar,.tip{display:none!important}
+  main{padding:0;max-width:none}
+  .packet{border:0;padding:0;max-width:none;font-size:10.5px}
+  .packet .two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .packet{font-size:9.5px;line-height:1.3}
+  .packet h1{font-size:15px}
+  .packet h2{margin:7px 0 3px;font-size:10.5px}
+  .packet .kpis{grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;margin-top:5px}
+  .packet .kpi{padding:3px 5px}.packet .kpi b{font-size:14px}.packet .kpi span{font-size:9px}
+  .packet table{font-size:9px}.packet th,.packet td{padding:1.5px 4px}
+  .packet .tw table{min-width:0}
+  .packet .sig-line{margin-top:10px}
+  .packet .note{margin-top:6px;font-size:8.5px}
+  .printonly{display:block}
+  .panel{box-shadow:none;break-inside:avoid}
+  @page{size:letter;margin:11mm}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="bar">
+    <div class="brand"><span class="logo" aria-hidden="true">QA</span><span>QA Lab Suite</span></div>
+    <div class="search" role="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Search swabs, lots, loads, holds, cases…" autocomplete="off" aria-label="Search all records">
+      <div id="qres" class="results" hidden></div>
+    </div>
+    <div class="menu">
+      <button class="btn sm" id="menuBtn" aria-haspopup="true" aria-expanded="false">Data ▾</button>
+      <div class="dd" id="menuDd" hidden>
+        <button data-act="set-user">Set my name for records…</button>
+        <hr>
+        <button data-act="download-offline">Download offline copy (data baked in)</button>
+        <button data-act="export-json">Back up all data (JSON)</button>
+        <button data-act="import-json">Restore from backup (JSON)…</button>
+        <hr>
+        <button data-act="reload-sample">Reset to SAMPLE data</button>
+        <button data-act="clear-all">Clear all data (start blank)</button>
+      </div>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs" aria-label="Modules"></nav>
+</header>
+<main id="main"></main>
+<dialog id="dlg" aria-labelledby="dlgTitle"></dialog>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="tip" id="tip" role="tooltip"></div>
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+<script id="baked-data" type="application/json">null</script>
+<script>
+'use strict';
+/* ============================================================
+   QA Lab Suite — single-file app. Data lives in localStorage.
+   ============================================================ */
+const PRISTINE = document.documentElement.cloneNode(true); // captured before first render, for offline download
+const LS_KEY = 'qaLabSuite.v1';
+const SEED_REF = '2026-11-18';   // seed dates are written relative to this day and shifted to "today" on load
+const ATP_LIMIT = 150;           // RLU — pass at or below
+const REPEAT_WINDOW = 60;        // days — 2+ positives at one site inside this window = repeat positive
+const ZONES = {1:'Product contact surfaces',2:'Adjacent to product contact',3:'Non-contact, inside process area',4:'Outside process area'};
+const EM_TYPES = ['ATP','Listeria spp.','L. monocytogenes'];
+const FISHBONE = ['People','Method','Machine','Material','Measurement','Environment'];
+const CASE_STATUSES = ['Investigating','Actions In Progress','Effectiveness Check','Closed'];
+const SEVERITIES = ['High','Medium','Low'];
+const LOT_STATUSES = ['In Testing','Awaiting Review','On Hold','Released','Rejected'];
+const DECISIONS = ['Pending','Accept','Hold','Reject'];
+const HOLD_STATUSES = ['On Hold','Released','Reworked','Destroyed','Returned to Supplier'];
+const PROGRAMS = ['HACCP','GMP','FSMA','BRC','Organic'];
+const COMP_STATUSES = ['Compliant','In Progress','Gap Found','Not Assessed'];
+
+/* ---------- small utils ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2, '0');
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseD = s => { const [y, m, d] = String(s).split('-').map(Number); return new Date(y, (m || 1) - 1, d || 1); };
+const today = () => iso(new Date());
+const addDays = (s, n) => { const d = parseD(s); d.setDate(d.getDate() + n); return iso(d); };
+const diffDays = (a, b) => Math.round((parseD(b) - parseD(a)) / 864e5); // b − a
+const validDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s || '');
+const inLast = (s, n) => validDate(s) && diffDays(s, today()) >= 0 && diffDays(s, today()) < n;
+const inRange = (s, a, b) => validDate(s) && s >= a && s <= b;
+const fmtD = s => validDate(s) ? parseD(s).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : '—';
+const fmtDs = s => validDate(s) ? parseD(s).toLocaleDateString('en-US', {month:'short', day:'numeric'}) : '—';
+const uid = p => p + '-' + Math.random().toString(36).slice(2, 7) + Date.now().toString(36).slice(-4);
+const isNum = v => v !== '' && v != null && isFinite(Number(v));
+const clone = o => JSON.parse(JSON.stringify(o));
+const pct = (a, b) => b ? Math.round(a / b * 1000) / 10 : 0;
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+function fmtNum(v, dp) { if (!isNum(v)) return '—'; const n = Number(v); return dp == null ? String(n) : n.toFixed(dp); }
+function dayOfYear(s) { const d = parseD(s); return Math.round((d - new Date(d.getFullYear(), 0, 0)) / 864e5); }
+function lotCodeFor(prefix, date) { const d = parseD(date); return `${prefix}-${String(d.getFullYear()).slice(2)}${String(dayOfYear(date)).padStart(3, '0')}`; }
+function getPath(o, p) { return p.split('.').reduce((a, k) => a == null ? a : a[k], o); }
+function setPath(o, p, v) { const ks = p.split('.'); let c = o; for (let i = 0; i < ks.length - 1; i++) { if (c[ks[i]] == null) c[ks[i]] = /^\d+$/.test(ks[i + 1]) ? [] : {}; c = c[ks[i]]; } c[ks[ks.length - 1]] = v; }
+
+/* ---------- state ---------- */
+let S;
+function emptyState() {
+  return { version:1, user:'QA Tech', sampleLoaded:false, bakedFrom:null,
+    seq:{capa:0, hold:0},
+    sites:[], swabs:[], emInv:[], products:[], lots:[], releases:[], materials:[], loads:[], holds:[], cases:[], compliance:[], activity:[] };
+}
+function save() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(S)); }
+  catch (e) { toast('Could not save to this browser’s storage — export a backup from the Data menu.', 'crit'); }
+}
+function log(mod, text) {
+  S.activity.unshift({ id: uid('ac'), ts: new Date().toISOString(), mod, text });
+  if (S.activity.length > 400) S.activity.length = 400;
+}
+function loadState() {
+  let baked = null;
+  try { baked = JSON.parse($('#baked-data').textContent || 'null'); } catch (e) { baked = null; }
+  let stored = null;
+  try { stored = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (e) { stored = null; }
+  if (baked && baked.state && (!stored || stored.bakedFrom !== baked.bakedAt)) {
+    S = Object.assign(emptyState(), baked.state, { bakedFrom: baked.bakedAt });
+    save(); return;
+  }
+  if (stored && stored.version === 1) { S = Object.assign(emptyState(), stored); return; }
+  S = buildSeed(); save();
+}
+
+/* ---------- domain helpers ---------- */
+const siteById = id => S.sites.find(s => s.id === id);
+const productById = id => S.products.find(p => p.id === id);
+const materialById = id => S.materials.find(m => m.id === id);
+const caseById = id => S.cases.find(c => c.id === id);
+const holdById = id => S.holds.find(h => h.id === id);
+const lotById = id => S.lots.find(l => l.id === id);
+const loadById = id => S.loads.find(l => l.id === id);
+const swabById = id => S.swabs.find(s => s.id === id);
+const isOpenHold = h => h.status === 'On Hold';
+const isPathogen = t => t !== 'ATP';
+function swabResultLabel(s) {
+  if (s.type === 'ATP') return `${isNum(s.value) ? s.value + ' RLU' : '—'} · ${s.result}`;
+  return s.result === 'Fail' ? 'Positive' : 'Negative';
+}
+function siteFails(siteId, endDate, windowDays = REPEAT_WINDOW) {
+  return S.swabs.filter(s => s.siteId === siteId && s.result === 'Fail' && s.date <= endDate && diffDays(s.date, endDate) < windowDays);
+}
+function isRepeatSite(siteId) { return siteFails(siteId, today()).length >= 2; }
+function swabCaseEligible(s) {
+  if (s.result !== 'Fail') return false;
+  const site = siteById(s.siteId);
+  return (site && Number(site.zone) === 1) || siteFails(s.siteId, s.date).length >= 2;
+}
+function siteLast(siteId) { return S.swabs.filter(s => s.siteId === siteId).sort((a, b) => b.date.localeCompare(a.date))[0]; }
+function siteNextDue(site) { const l = siteLast(site.id); return l ? addDays(l.date, Number(site.freq) || 7) : today(); }
+function sitesDue() { return S.sites.filter(s => siteNextDue(s) <= today()); }
+function actionOverdue(a) { return !a.done && validDate(a.due) && a.due < today(); }
+function overdueActions() {
+  const out = [];
+  S.cases.filter(c => c.status !== 'Closed').forEach(c => [...c.corrective, ...c.preventive].forEach(a => actionOverdue(a) && out.push({ src:'capa', parent:c, a })));
+  S.emInv.filter(i => i.status !== 'Closed').forEach(i => i.actions.forEach(a => actionOverdue(a) && out.push({ src:'em', parent:i, a })));
+  return out;
+}
+function holdAging(h) { return diffDays(h.placed, isOpenHold(h) ? today() : (h.dispDate || today())); }
+function compOverdue(c) { return validDate(c.due) && c.due < today(); }
+
+/* spec checks — tests: {key,name,unit,min,max,type:'num'|'pf',req,dp} */
+function checkVal(t, v) {
+  if (t.type === 'pf') return v === 'Pass' ? 'ok' : v === 'Fail' ? 'oos' : 'missing';
+  if (!isNum(v)) return 'missing';
+  const n = Number(v);
+  if (isNum(t.min) && n < Number(t.min)) return 'oos';
+  if (isNum(t.max) && n > Number(t.max)) return 'oos';
+  return 'ok';
+}
+function specText(t) {
+  if (t.type === 'pf') return 'Pass required';
+  const u = t.unit ? ' ' + t.unit : ''; const f = v => fmtNum(v, t.dp);
+  if (isNum(t.min) && isNum(t.max)) return `${f(t.min)} – ${f(t.max)}${u}`;
+  if (isNum(t.min)) return `≥ ${f(t.min)}${u}`;
+  if (isNum(t.max)) return `≤ ${f(t.max)}${u}`;
+  return 'record only';
+}
+function lotEval(lot) {
+  const p = productById(lot.productId);
+  const rows = (p ? p.tests : []).map(t => ({ t, v: (lot.results || {})[t.key], st: checkVal(t, (lot.results || {})[t.key]) }));
+  return { p, rows, missing: rows.filter(r => r.t.req && r.st === 'missing'), oos: rows.filter(r => r.st === 'oos') };
+}
+function openHoldFor(kind, id) { return S.holds.find(h => isOpenHold(h) && h.link && h.link.kind === kind && h.link.id === id); }
+function releaseGate(lot) {
+  const ev = lotEval(lot); const out = [];
+  out.push({ ok: !!ev.p, txt: 'Product with spec limits selected' });
+  out.push({ ok: ev.p && !ev.missing.length, txt: ev.missing.length ? `Required tests entered — missing: ${ev.missing.map(r => r.t.name).join(', ')}` : 'All required tests entered' });
+  out.push({ ok: !ev.oos.length, txt: ev.oos.length ? `All results within spec — out of spec: ${ev.oos.map(r => r.t.name).join(', ')}` : 'All results within spec' });
+  out.push({ ok: !!(lot.review && lot.review.by && validDate(lot.review.date)), txt: 'Record-review sign-off (reviewer + date)' });
+  out.push({ ok: !!lot.releasedBy, txt: 'Released by recorded' });
+  const h = lot.id && openHoldFor('lot', lot.id);
+  out.push({ ok: !h, txt: h ? `No open hold — ${h.num} must be dispositioned in Holds & CAPA first` : 'No open hold on this lot' });
+  return out;
+}
+function loadEval(load) {
+  const m = materialById(load.materialId);
+  const coa = (m ? m.tests : []).map(t => ({ t, v: (load.coa || {})[t.key], st: checkVal(t, (load.coa || {})[t.key]) }));
+  const internal = (m ? m.tests : []).map(t => ({ t, v: (load.internal || {})[t.key], st: checkVal(t, (load.internal || {})[t.key]) })).filter(r => r.st !== 'missing');
+  return { m, coa, internal, coaOos: coa.filter(r => r.st === 'oos'), coaMissing: coa.filter(r => r.st === 'missing'), intOos: internal.filter(r => r.st === 'oos') };
+}
+function acceptGate(load) {
+  const ev = loadEval(load);
+  return [
+    { ok: !!ev.m, txt: 'Material with specification selected' },
+    { ok: !!load.coaReceived, txt: 'COA received' },
+    { ok: load.coaReceived && !ev.coaMissing.length, txt: ev.coaMissing.length ? `COA values entered — missing: ${ev.coaMissing.map(r => r.t.name).join(', ')}` : 'All COA values entered' },
+    { ok: !ev.coaOos.length, txt: ev.coaOos.length ? `COA within spec — outside: ${ev.coaOos.map(r => r.t.name).join(', ')}` : 'COA values within spec' },
+    { ok: !ev.intOos.length, txt: ev.intOos.length ? `Internal tests within spec — outside: ${ev.intOos.map(r => r.t.name).join(', ')}` : 'Internal test results within spec (where tested)' },
+  ];
+}
+function closureGate(c) {
+  const e = c.effectiveness || {};
+  const open = [...c.corrective, ...c.preventive].filter(a => !a.done);
+  return [
+    { ok: !!(c.rca && c.rca.rootCause), txt: 'Root-cause statement recorded' },
+    { ok: c.corrective.length > 0, txt: 'At least one corrective action' },
+    { ok: !open.length, txt: open.length ? `All actions complete — ${open.length} still open` : 'All corrective & preventive actions complete' },
+    { ok: !!(e.metric && validDate(e.date)), txt: 'Effectiveness check recorded (metric + check date)' },
+    { ok: e.result === 'Pass', txt: e.result === 'Fail' ? 'Effectiveness check result is Fail — revisit root cause' : 'Effectiveness check result = Pass' },
+  ];
+}
+const gateOk = g => g.every(x => x.ok);
+function caseStep(c) {
+  const e = c.effectiveness || {};
+  return [
+    !!c.deviation, !!c.containment, !!(c.rca && c.rca.rootCause),
+    c.corrective.length > 0 && [...c.corrective, ...c.preventive].every(a => a.done),
+    e.result === 'Pass', c.status === 'Closed'];
+}
+function nextHoldNum() { S.seq.hold++; return 'H-' + String(S.seq.hold).padStart(3, '0'); }
+function nextCaseNum() { S.seq.capa++; return `CAPA-${today().slice(0, 4)}-${String(S.seq.capa).padStart(3, '0')}`; }
+function linkLabel(link) {
+  if (!link) return '';
+  if (link.kind === 'lot') { const l = lotById(link.id); return l ? `Lot ${l.code}` : 'Lot (deleted)'; }
+  if (link.kind === 'load') { const l = loadById(link.id); return l ? `Load ${l.supplierLot} · ${materialById(l.materialId)?.name || ''}` : 'Load (deleted)'; }
+  if (link.kind === 'swab') { const s = swabById(link.id); return s ? `Swab ${siteById(s.siteId)?.name || ''} ${fmtDs(s.date)}` : 'Swab (deleted)'; }
+  if (link.kind === 'inv') { const i = S.emInv.find(x => x.id === link.id); return i ? `EM investigation: ${i.title}` : 'EM investigation'; }
+  if (link.kind === 'trend') return 'Trending Center finding';
+  return link.label || '';
+}
+function linkBtn(link) {
+  if (!link || !link.id) return esc(linkLabel(link));
+  return `<button class="btn sm ghost" data-act="open" data-kind="${esc(link.kind)}" data-id="${esc(link.id)}">${esc(linkLabel(link))} ↗</button>`;
+}
+
+/* ---------- SAMPLE seed ---------- */
+function buildSeed() {
+  const shift = diffDays(SEED_REF, today());
+  const D = s => addDays(s, shift);
+  const st = emptyState(); st.sampleLoaded = true;
+  const X = o => Object.assign(o, { sample: true });
+  const A = (desc, owner, due, done) => ({ id: uid('a'), desc, owner, due: D(due), done: !!done });
+
+  // Sites (12) — frequency in days
+  st.sites = [
+    ['st1','Filler Valves',1,'Fill Room',7], ['st2','Capper Chucks',1,'Fill Room',7], ['st3','Blend Tank Outlet Valve',1,'Blend Room',7],
+    ['st4','Filler Frame / Housing',2,'Fill Room',7], ['st5','Fill Room Floor Drain',2,'Fill Room',7], ['st6','Capper Control Panel',2,'Fill Room',7],
+    ['st7','Fill Room Floor',3,'Fill Room',14], ['st8','Cooler Floor — Case Pack',3,'Cooler',14], ['st9','Forklift Wheels — Cooler',3,'Cooler',14],
+    ['st10','Locker Room Entry',4,'Welfare',30], ['st11','Warehouse Dock Door',4,'Warehouse',30], ['st12','Break Room Floor',4,'Welfare',30],
+  ].map(([id, name, zone, area, freq]) => X({ id, name, zone, area, freq }));
+
+  // Swabs (56) — 2026-10-02 → 2026-11-03
+  const days = [
+    ['2026-10-02',[1,2,3,4,5,7,10]], ['2026-10-06',[1,2,3,6,8,11]], ['2026-10-09',[1,4,5,6,9,12]], ['2026-10-14',[2,3,5,7,8,10]],
+    ['2026-10-20',[1,2,3,4,5,7,8,9]], ['2026-10-24',[1,2,3,4,5,6,11,12]], ['2026-10-28',[1,2,3,5,6,7,8,9]], ['2026-11-03',[1,2,3,4,5,8,10]],
+  ];
+  const fails = { '2026-10-06|2':310, '2026-10-09|5':1, '2026-10-20|8':1, '2026-10-24|5':1, '2026-10-28|1':265, '2026-11-03|5':1 };
+  const analysts = ['J. Rivera','M. Chen','A. Patel'];
+  let k = 0;
+  days.forEach(([d, list], di) => list.forEach(n => {
+    const site = st.sites[n - 1]; const type = site.zone === 1 ? 'ATP' : 'Listeria spp.';
+    const f = fails[d + '|' + n]; k++;
+    let value = '', result;
+    if (type === 'ATP') { value = f ? f : 35 + ((k * 37) % 100); result = value > ATP_LIMIT ? 'Fail' : 'Pass'; }
+    else result = f ? 'Fail' : 'Pass';
+    st.swabs.push(X({ id: 'sw' + k, siteId: site.id, date: D(d), type, value, result, analyst: analysts[(k + di) % 3],
+      notes: f ? (type === 'ATP' ? 'Above 150 RLU — re-cleaned and re-swabbed' : 'Presumptive positive') : '', caseId: '' }));
+  }));
+
+  st.emInv = [X({ id:'inv1', title:'Repeat Listeria positives — Fill Room Floor Drain', siteId:'st5', opened:D('2026-10-24'), status:'Open',
+    notes:'Third Listeria spp. positive at this drain since early October. Zone 2 — adjacent to filler. Vector swabbing and drain SSOP review underway.',
+    actions:[ A('Deep clean & sanitize drain; replace cracked drain cover','M. Chen','2026-10-27',true),
+              A('Vector swabbing of 4 surrounding sites ×3 cycles','J. Rivera','2026-11-14',false),
+              A('Review drain-cleaning SSOP and retrain sanitation crew','A. Patel','2026-11-25',false) ], caseId:'' })];
+
+  // Products & specs
+  const T = (key, name, unit, min, max, dp, extra) => Object.assign({ key, name, unit, min, max, type:'num', req:true, dp }, extra || {});
+  const SENS = { key:'sensory', name:'Sensory', unit:'', min:'', max:'', type:'pf', req:true };
+  st.products = [
+    X({ id:'p1', name:'Orange Juice (NFC) 52 oz', prefix:'OJ', tests:[T('ph','pH','',3.3,4.0,2), T('brix','Brix','°Bx',10.5,12.5,1), T('ta','Titratable Acidity','%',0.5,1.0,2), SENS] }),
+    X({ id:'p2', name:'Lemonade 52 oz', prefix:'LM', tests:[T('ph','pH','',2.4,3.0,2), T('brix','Brix','°Bx',10.0,11.5,1), SENS] }),
+    X({ id:'p3', name:'Whole Milk ½ gal', prefix:'WM', tests:[T('ph','pH','',6.6,6.8,2), T('fp','Freezing Point (cryoscope)','°C',-0.560,-0.507,3,{labTol:0.005}), T('fat','Butterfat','%',3.25,3.6,2), SENS] }),
+    X({ id:'p4', name:'Cold Brew Coffee 32 oz', prefix:'CB', tests:[T('ph','pH','',4.8,5.4,2), T('brix','Brix','°Bx',1.5,2.5,1), SENS] }),
+  ];
+  const lotDefs = [
+    ['p1', [['2026-10-03',3.62,11.6,0.74],['2026-10-17',3.58,11.8,0.78],['2026-10-31',3.66,11.4,0.71],['2026-11-07',3.60,11.9,0.76],['2026-11-14',3.71,11.2,0.69]], ['ph','brix','ta']],
+    ['p2', [['2026-10-08',2.71,10.6],['2026-10-22',2.68,10.8],['2026-11-05',2.75,10.5],['2026-11-13',3.18,10.7]], ['ph','brix']],
+    ['p3', [['2026-10-01',6.70,-0.520,3.32,-0.520],['2026-10-08',6.68,-0.521,3.30,-0.520],['2026-10-15',6.71,-0.520,3.35,-0.521],['2026-10-22',6.69,-0.522,3.31,-0.520],
+            ['2026-10-29',6.72,-0.524,3.33,-0.520],['2026-11-05',6.70,-0.527,3.29,-0.521],['2026-11-12',6.68,-0.529,3.34,-0.520],['2026-11-17',6.71,-0.531,3.31,-0.521]], ['ph','fp','fat']],
+    ['p4', [['2026-10-10',5.10,1.9],['2026-10-30',5.05,2.0],['2026-11-16',5.12,1.95]], ['ph','brix']],
+  ];
+  let lk = 0;
+  lotDefs.forEach(([pid, rows, keys]) => {
+    const p = st.products.find(x => x.id === pid);
+    rows.forEach((r, i) => {
+      lk++;
+      const date = D(r[0]); const results = { sensory:'Pass' }; keys.forEach((kk, j) => results[kk] = r[j + 1]);
+      const outside = pid === 'p3' ? { fp: r[4] } : {};
+      const last = i === rows.length - 1;
+      let status = 'Released', sensoryNotes = 'Typical color, aroma, flavor.';
+      if (pid === 'p1' && last) status = 'Awaiting Review';
+      if (pid === 'p2' && last) { status = 'On Hold'; sensoryNotes = 'Noticeably less tart than standard.'; }
+      if (pid === 'p4' && last) { status = 'In Testing'; delete results.sensory; sensoryNotes = ''; }
+      const released = status === 'Released';
+      const lot = X({ id:'lot' + lk, productId:pid, code: lotCodeFor(p.prefix, date), date, results, outside, sensoryNotes, status,
+        review: released ? { by:'M. Chen', date: addDays(date, 1) } : { by:'', date:'' }, releasedBy: released ? 'J. Rivera' : '', notes: '', caseId:'' });
+      st.lots.push(lot);
+      if (released) st.releases.push(X({ id:'rel' + lk, lotId: lot.id, code: lot.code, product: p.name, date: addDays(date, 1), by:'J. Rivera', reviewer:'M. Chen',
+        data: p.tests.map(t => `${t.name} ${t.type === 'pf' ? results[t.key] : fmtNum(results[t.key], t.dp)}`).join('; ') }));
+    });
+  });
+  const lmHeld = st.lots.find(l => l.productId === 'p2' && l.status === 'On Hold');
+
+  // Materials & incoming loads
+  const M = (key, name, unit, min, max, dp) => ({ key, name, unit, min, max, type:'num', req:true, dp });
+  st.materials = [
+    X({ id:'m1', name:'Orange Juice Concentrate 65 °Bx', category:'Ingredient', tests:[M('brix','Brix','°Bx',64.0,66.0,1), M('ta','Acidity (as citric)','%',2.8,3.6,2)] }),
+    X({ id:'m2', name:'Cane Sugar, Granulated', category:'Ingredient', tests:[M('moist','Moisture','%','',0.04,3), M('color','Color','ICUMSA','',45,0)] }),
+    X({ id:'m3', name:'Lemon Juice Concentrate', category:'Ingredient', tests:[M('brix','Brix','°Bx',38.0,42.0,1), M('ta','Acidity (as citric)','%',30,34,1)] }),
+    X({ id:'m4', name:'HDPE Bottle 52 oz', category:'Packaging', tests:[M('wt','Bottle weight','g',46.0,50.0,1), M('od','Neck finish OD','mm',37.9,38.3,2)] }),
+    X({ id:'m5', name:'Coffee Beans, Roasted', category:'Ingredient', tests:[M('moist','Moisture','%','',5.0,1)] }),
+  ];
+  const L = (id, supplier, mid, slot, d, coaReceived, coa, decision, reason, internal) => X({ id, supplier, materialId:mid, supplierLot:slot, received:D(d), coaReceived, coa, internal: internal || {},
+    decision, reason: reason || '', decidedBy: decision === 'Pending' ? '' : 'A. Patel', caseId:'', notes:'' });
+  st.loads = [
+    L('ld1','Sunvale Citrus','m1','SV-88412','2026-10-06',true,{brix:65.1,ta:3.2},'Accept','COA in spec'),
+    L('ld2','Harbor Sweeteners','m2','HS-2291','2026-10-09',true,{moist:0.03,color:32},'Accept','COA in spec'),
+    L('ld3','Keystone Packaging','m4','KP-77810','2026-10-14',true,{wt:47.9,od:38.1},'Accept','COA in spec',{wt:48.1}),
+    L('ld4','Coastal Lemon Growers','m3','CL-1140','2026-10-20',true,{brix:40.2,ta:32.1},'Accept','COA in spec'),
+    L('ld5','Sunvale Citrus','m1','SV-88730','2026-10-23',true,{brix:64.6,ta:3.1},'Accept','COA in spec'),
+    L('ld6','Keystone Packaging','m4','KP-77955','2026-10-27',true,{wt:51.2,od:38.0},'Reject','Bottle weight above spec on COA; internal check confirmed 51.4 g',{wt:51.4}),
+    L('ld7','Coastal Lemon Growers','m3','CL-1188','2026-11-04',true,{brix:39.8,ta:31.7},'Accept','COA in spec'),
+    L('ld8','Sunvale Citrus','m1','SV-89107','2026-11-10',true,{brix:61.8,ta:3.3},'Hold','COA Brix 61.8 below 64.0 minimum — held at receiving pending supplier response',{brix:61.9}),
+    L('ld9','Harbor Sweeteners','m2','HS-2350','2026-11-16',false,{},'Pending',''),
+    L('ld10','Ridgeline Roasters','m5','RR-5521','2026-11-17',true,{moist:4.1},'Pending',''),
+  ];
+
+  // Holds
+  st.seq.hold = 2;
+  st.holds = [
+    X({ id:'h1', num:'H-001', itemType:'Finished lot', ref: lmHeld.code + ' · Lemonade 52 oz', link:{kind:'lot', id:lmHeld.id}, reason:'pH 3.18 above 3.00 maximum', placed: lmHeld.date, placedBy:'J. Rivera', status:'On Hold', disposition:'', dispDate:'', caseId:'' }),
+    X({ id:'h2', num:'H-002', itemType:'Incoming load', ref:'SV-89107 · Orange Juice Concentrate 65 °Bx', link:{kind:'load', id:'ld8'}, reason:'Supplier COA Brix 61.8 below 64.0 minimum', placed:D('2026-11-10'), placedBy:'A. Patel', status:'On Hold', disposition:'', dispDate:'', caseId:'case3' }),
+  ];
+
+  // CAPA cases (exactly 3)
+  st.seq.capa = 3;
+  const z3 = st.swabs.find(s => s.siteId === 'st8' && s.result === 'Fail');
+  z3.caseId = 'case1'; st.loads.find(l => l.id === 'ld8').caseId = 'case3';
+  st.cases = [
+    X({ id:'case1', num:'CAPA-2026-001', title:'Zone 3 Listeria spp. environmental positive — Cooler Floor, Case Pack', severity:'High', status:'Effectiveness Check',
+      opened:D('2026-10-21'), owner:'M. Chen', source:{kind:'swab', id:z3.id},
+      deviation:'Routine Zone 3 swab of the cooler floor at the case packer returned a presumptive Listeria spp. positive.',
+      containment:'Intensified sanitation of the case-pack area; vector swabs at 6 surrounding sites all negative; no Zone 1/2 positives in the area, so no product hold required under the EM program.',
+      containDate:D('2026-10-21'),
+      rca:{ whys:['Listeria spp. was harboring in a cracked floor joint beside the case packer.','The joint sealant had degraded and water pooled at the joint.','Water came from the case packer condensate line draining onto the floor.','The condensate line was rerouted during a line change.','Equipment changes did not require a sanitation / food-safety review.'],
+        cats:['Environment','Method'], rootCause:'An equipment change made without sanitation review routed condensate onto a degraded floor joint, creating a wet harborage site in Zone 3.' },
+      corrective:[ A('Grind out and reseal floor joint at case packer','Maintenance','2026-10-28',true), A('Reroute condensate line to floor drain','Maintenance','2026-10-30',true) ],
+      preventive:[ A('Add floor/joint condition to pre-op inspection checklist','M. Chen','2026-11-04',true), A('Require sanitation sign-off on all equipment change requests','QA Manager','2026-11-07',true) ],
+      effectiveness:{ metric:'3 consecutive weekly negative Listeria spp. swabs at the site and 6 vector sites', date:D('2026-11-24'), result:'', notes:'2 of 3 weekly rounds negative so far.' },
+      closedDate:'' }),
+    X({ id:'case2', num:'CAPA-2026-002', title:'Instrument drift found by trending — cryoscope vs. outside lab', severity:'Medium', status:'Actions In Progress',
+      opened:D('2026-11-06'), owner:'A. Patel', source:{kind:'trend', id:'', label:'Trending Center — in-house vs outside lab'},
+      deviation:'Trending showed in-house cryoscope freezing-point results on Whole Milk drifting more negative than outside-lab split samples (difference growing to about −0.008 °C) while still inside spec.',
+      containment:'Outside lab verifying freezing point on every Whole Milk lot until the cryoscope is recalibrated; released lots reviewed — all within spec on outside-lab values.',
+      containDate:D('2026-11-07'),
+      rca:{ whys:['In-house readings run increasingly low versus the outside lab.','The cryoscope calibration has shifted.','Calibration standards were used past their open-vial stability.','There is no scheduled daily reference-standard check.','The instrument SOP covered annual calibration only.'],
+        cats:['Measurement','Method'], rootCause:'Calibration standards used beyond open-vial stability, with no routine reference check to catch the shift.' },
+      corrective:[ A('Recalibrate cryoscope with fresh standards','A. Patel','2026-11-10',false), A('Confirm agreement with outside lab on 3 split samples','A. Patel','2026-11-28',false) ],
+      preventive:[ A('Add daily reference-standard check with control chart to instrument SOP','QA Manager','2026-12-05',false) ],
+      effectiveness:{ metric:'In-house vs outside lab within ±0.003 °C for 4 consecutive weeks', date:D('2026-12-26'), result:'', notes:'' },
+      closedDate:'' }),
+    X({ id:'case3', num:'CAPA-2026-003', title:'Supplier COA not matching specification — OJ concentrate Brix', severity:'Medium', status:'Investigating',
+      opened:D('2026-11-10'), owner:'A. Patel', source:{kind:'load', id:'ld8'},
+      deviation:'Sunvale Citrus COA for lot SV-89107 reports Brix 61.8 against a 64.0–66.0 specification. Internal check confirmed 61.9.',
+      containment:'Load placed on hold at receiving (H-002), segregated and tagged; not released to production. Supplier notified the same day.',
+      containDate:D('2026-11-10'),
+      rca:{ whys:['Concentrate shipped below Brix specification.','Supplier response pending.','','',''], cats:['Material'], rootCause:'' },
+      corrective:[ A('Request supplier corrective action report (SCAR) from Sunvale Citrus','A. Patel','2026-11-21',false) ],
+      preventive:[],
+      effectiveness:{ metric:'', date:'', result:'', notes:'' }, closedDate:'' }),
+  ];
+  st.holds[1].caseId = 'case3';
+
+  // Compliance checklist
+  const C = (program, item, status, last, due, interval, owner, notes) => X({ id: uid('cp'), program, item, status, last: last ? D(last) : '', due: D(due), interval, owner, notes: notes || '' });
+  st.compliance = [
+    C('HACCP','HACCP plan reassessment (annual)','Compliant','2026-03-12','2027-03-12',365,'QA Manager'),
+    C('HACCP','CCP monitoring & verification records reviewed','Compliant','2026-11-14','2026-11-21',7,'QA Tech'),
+    C('HACCP','Hazard analysis review after process / equipment change','In Progress','2026-11-07','2026-11-28',30,'QA Manager','Triggered by case-packer condensate reroute (CAPA-2026-001).'),
+    C('GMP','GMP facility inspection','Compliant','2026-11-03','2026-12-03',30,'QA Tech'),
+    C('GMP','Employee GMP training records current','Compliant','2026-09-30','2026-12-30',90,'HR / QA'),
+    C('GMP','Pest control program review','Compliant','2026-10-15','2027-01-15',90,'QA Tech'),
+    C('FSMA','Food Safety Plan review (PCQI)','Compliant','2026-06-01','2026-12-01',180,'PCQI'),
+    C('FSMA','Sanitation preventive controls — EM program review','In Progress','2026-08-20','2026-11-20',90,'QA Manager','Include floor-drain findings from Fill Room.'),
+    C('FSMA','Supply-chain program — approved supplier records','Gap Found','2026-10-30','2026-11-30',90,'QA Tech','Sunvale Citrus COA nonconformance under review.'),
+    C('BRC','Internal audit — scheduled clauses','Compliant','2026-10-10','2027-01-10',90,'Internal Auditor'),
+    C('BRC','Mock recall / traceability exercise','Not Assessed','2026-05-10','2026-11-10',180,'QA Manager','Overdue — schedule with warehouse.'),
+    C('BRC','Management review','Compliant','2026-07-15','2027-01-15',180,'Site Leadership'),
+    C('Organic','Organic System Plan update','Compliant','2026-02-20','2027-02-20',365,'QA Manager'),
+    C('Organic','Organic ingredient certificates on file','In Progress','2026-08-15','2026-11-15',90,'Purchasing','2 supplier certificates expiring — requested.'),
+    C('Organic','Commingling / contamination prevention check','Compliant','2026-10-25','2026-11-25',30,'QA Tech'),
+  ];
+
+  // Activity
+  const act = (d, mod, text) => st.activity.push({ id: uid('ac'), ts: D(d) + 'T09:00:00', mod, text, sample:true });
+  [ ['2026-11-17','incoming','Load RR-5521 Coffee Beans received — COA in spec, awaiting decision'],
+    ['2026-11-17','product','Lot ' + lotCodeFor('WM', D('2026-11-17')) + ' Whole Milk released'],
+    ['2026-11-16','product','Lot ' + lotCodeFor('CB', D('2026-11-16')) + ' Cold Brew entered — sensory pending'],
+    ['2026-11-16','incoming','Load HS-2350 Cane Sugar received — COA not yet received'],
+    ['2026-11-14','product','Lot ' + lotCodeFor('OJ', D('2026-11-14')) + ' Orange Juice — all tests in spec, awaiting record review'],
+    ['2026-11-13','capa','H-001 placed: Lemonade lot ' + lmHeld.code + ' pH 3.18 above spec'],
+    ['2026-11-10','capa','CAPA-2026-003 opened from incoming load SV-89107 (COA Brix below spec)'],
+    ['2026-11-10','incoming','Load SV-89107 placed on Hold — COA Brix 61.8'],
+    ['2026-11-06','capa','CAPA-2026-002 opened from Trending Center — cryoscope drift'],
+    ['2026-11-03','em','Fill Room Floor Drain — Listeria spp. positive (repeat)'],
+  ].forEach(a => act(...a));
+  st.activity.sort((a, b) => b.ts.localeCompare(a.ts));
+  return st;
+}
+
+/* ============================================================
+   UI framework: routing, render, toasts, modal
+   ============================================================ */
+const ROUTES = [
+  ['home','Dashboard'], ['em','Env. Monitoring'], ['product','Product & Release'], ['incoming','Incoming & COA'],
+  ['capa','Holds & CAPA'], ['trending','Trending'], ['audit','Audit Packet'], ['compliance','Compliance'] ];
+const UI = {
+  emSite:'', emFilter:'all', lotFilter:'open', loadFilter:'all', caseFilter:'open', holdFilter:'open', compFilter:'all',
+  trend:{ range:'90', from:'', to:'', product:'p1', test:'ph', lab:'p3|fp', pareto:'events' },
+  audit:{ range:'30', from:'', to:'' },
+};
+const VIEWS = {};
+const A = {};          // click actions, keyed by data-act
+let M = null;          // active modal {title, draft, body(draft), onSave(draft), extra, error}
+
+function route() { const r = (location.hash || '#home').slice(1).split('/')[0]; return VIEWS[r] ? r : 'home'; }
+function render() {
+  const r = route();
+  const badge = { capa: S.holds.filter(isOpenHold).length + overdueActions().filter(x => x.src === 'capa').length, compliance: S.compliance.filter(compOverdue).length };
+  $('#tabs').innerHTML = ROUTES.map(([k, n]) => `<a href="#${k}" class="${k === r ? 'on' : ''}" ${k === r ? 'aria-current="page"' : ''}>${n}${badge[k] ? `<span class="dot" aria-label="${badge[k]} need attention">${badge[k]}</span>` : ''}</a>`).join('');
+  const sampleCount = ['swabs','lots','loads','holds','cases','compliance'].reduce((n, k) => n + S[k].filter(x => x.sample).length, 0);
+  const banner = sampleCount ? `<div class="samplebar noprint"><span><b>SAMPLE DATA</b> — ${sampleCount} demonstration records are loaded and tagged <span class="sample">SAMPLE</span>. Sites, products and suppliers are fictional.</span><span class="btns"><button class="btn sm" data-act="clear-sample">Remove sample records</button></span></div>` : '';
+  $('#main').innerHTML = banner + VIEWS[r]();
+  drawCharts();
+}
+let PENDING = null;   // editor to open once a route change has rendered
+window.addEventListener('hashchange', () => { if (M) closeModal(); render(); window.scrollTo(0, 0); if (PENDING) { const f = PENDING; PENDING = null; f(); } });
+
+function toast(msg, tone, action) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (tone === 'crit' ? ' crit' : '');
+  el.innerHTML = `<span class="tx">${esc(msg)}</span>`;
+  if (action) {
+    const b = document.createElement('button'); b.className = 'btn sm'; b.textContent = action.label;
+    b.onclick = () => { el.remove(); action.fn(); }; el.appendChild(b);
+  }
+  const x = document.createElement('button'); x.className = 'btn sm ghost'; x.setAttribute('aria-label', 'Dismiss'); x.textContent = '✕'; x.style.color = 'inherit';
+  x.onclick = () => el.remove(); el.appendChild(x);
+  $('#toasts').appendChild(el);
+  setTimeout(() => el.remove(), action ? 12000 : 4500);
+}
+
+function pill(text, tone, icon) { return `<span class="pill ${tone || ''}">${icon ? `<span aria-hidden="true">${icon}</span>` : ''}${esc(text)}</span>`; }
+const SB = r => r && r.sample ? ' <span class="sample" title="Sample demonstration record">SAMPLE</span>' : '';
+const TONE = {
+  'Released':'good','Accept':'good','Pass':'good','Compliant':'good','Closed':'good','Negative':'good','Open':'warn',
+  'Awaiting Review':'info','In Testing':'','Pending':'info','Investigating':'warn','Actions In Progress':'warn','Effectiveness Check':'info',
+  'On Hold':'crit','Hold':'crit','Reject':'crit','Rejected':'crit','Fail':'crit','Gap Found':'crit','Positive':'crit',
+  'In Progress':'warn','Not Assessed':'','High':'crit','Medium':'warn','Low':'',
+  'Reworked':'good','Destroyed':'','Returned to Supplier':'' };
+const ICON = { good:'✓', crit:'✕', warn:'!', info:'•', '':'•' };
+function st(text) { const t = TONE[text] ?? ''; return pill(text, t, ICON[t]); }
+
+function openModal(cfg) {
+  M = Object.assign({ error: null }, cfg);
+  drawModal(); const d = $('#dlg'); if (!d.open) d.showModal();
+  setTimeout(() => { const f = $('#dlg .mbody input, #dlg .mbody select, #dlg .mbody textarea'); if (f && window.innerWidth > 640) f.focus(); }, 30);
+}
+function drawModal(keepFocus) {
+  if (!M) return;
+  const d = $('#dlg'); const body = $('.mbody', d); const top = body ? body.scrollTop : 0;
+  const ae = document.activeElement; const fpath = ae && d.contains(ae) ? ae.getAttribute('data-b') : null;
+  d.innerHTML = `<div class="mwrap"><div class="mhead"><h2 id="dlgTitle">${M.title}</h2><button class="btn sm ghost" data-act="modal-close" aria-label="Close">✕</button></div>
+    <div class="mbody">${M.error ? `<div class="err" role="alert"><b>${esc(M.error.title)}</b><ul>${M.error.items.map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>` : ''}${M.body(M.draft)}</div>
+    <div class="mfoot">${M.extra ? `<span class="left btns">${M.extra(M.draft)}</span>` : ''}<button class="btn" data-act="modal-close">Cancel</button><button class="btn primary" data-act="modal-save">${M.saveLabel || 'Save'}</button></div></div>`;
+  const nb = $('.mbody', d); nb.scrollTop = top;
+  if (M.error && !keepFocus) nb.scrollTop = 0;
+  if (keepFocus && fpath) { const el = d.querySelector(`[data-b="${CSS.escape(fpath)}"]`); if (el) el.focus({ preventScroll: true }); }
+}
+function closeModal() { M = null; const d = $('#dlg'); if (d.open) d.close(); d.innerHTML = ''; }
+// 'close' is dispatched asynchronously; ignore it if another modal has already been opened in the meantime
+$('#dlg').addEventListener('close', () => { if (!$('#dlg').open) M = null; });
+function bindVal(el) { if (el.type === 'checkbox') return el.checked; return el.value; }
+$('#dlg').addEventListener('input', e => { const el = e.target; if (!M || !el.dataset.b) return; setPath(M.draft, el.dataset.b, bindVal(el)); if (el.dataset.live !== undefined) liveUpdate(el); });
+$('#dlg').addEventListener('change', e => { const el = e.target; if (!M || !el.dataset.b) return; setPath(M.draft, el.dataset.b, bindVal(el)); if (el.dataset.rr !== undefined) setTimeout(() => drawModal(true), 0); });
+function liveUpdate(el) {
+  // re-render the modal but keep focus/caret in the field being typed in
+  const pos = el.selectionStart; const path = el.dataset.b;
+  drawModal(true);
+  const n = $('#dlg').querySelector(`[data-b="${CSS.escape(path)}"]`);
+  if (n && pos != null && n.setSelectionRange && n.type !== 'number' && n.type !== 'date') { try { n.setSelectionRange(pos, pos); } catch (e) {} }
+}
+
+/* field helpers for modal forms */
+const F = {
+  text: (label, path, d, o = {}) => `<label class="fld ${o.full ? 'full' : ''}"><span>${label}</span><input type="${o.type || 'text'}" data-b="${path}" value="${esc(getPath(d, path) ?? '')}" ${o.list ? `list="${o.list}"` : ''} ${o.step ? `step="${o.step}"` : ''} ${o.inputmode ? `inputmode="${o.inputmode}"` : ''} ${o.rr ? 'data-rr' : ''} ${o.live ? 'data-live' : ''} ${o.ph ? `placeholder="${esc(o.ph)}"` : ''}>${o.hint ? `<div class="hint">${o.hint}</div>` : ''}</label>`,
+  date: (label, path, d, o = {}) => F.text(label, path, d, Object.assign({ type:'date' }, o)),
+  area: (label, path, d, o = {}) => `<label class="fld ${o.full !== false ? 'full' : ''}"><span>${label}</span><textarea data-b="${path}" rows="${o.rows || 2}" ${o.ph ? `placeholder="${esc(o.ph)}"` : ''}>${esc(getPath(d, path) ?? '')}</textarea></label>`,
+  sel: (label, path, d, opts, o = {}) => `<label class="fld ${o.full ? 'full' : ''}"><span>${label}</span><select data-b="${path}" ${o.rr ? 'data-rr' : ''}>${opts.map(x => { const [v, t] = Array.isArray(x) ? x : [x, x]; return `<option value="${esc(v)}" ${String(getPath(d, path) ?? '') === String(v) ? 'selected' : ''}>${esc(t)}</option>`; }).join('')}</select>${o.hint ? `<div class="hint">${o.hint}</div>` : ''}</label>`,
+  chk: (label, path, d, o = {}) => `<label class="chk ${o.full ? 'full' : ''}"><input type="checkbox" data-b="${path}" ${getPath(d, path) ? 'checked' : ''} ${o.rr ? 'data-rr' : ''}> ${label}</label>`,
+};
+function gateBox(title, items, okTitle) {
+  const ok = gateOk(items);
+  return `<div class="gate ${ok ? 'ok' : 'no'}"><h4>${ok ? '✓ ' + esc(okTitle) : '✕ ' + esc(title)}</h4><ul>${items.map(i => `<li class="${i.ok ? 'y' : 'n'}"><span class="i" aria-hidden="true">${i.ok ? '✓' : '✕'}</span><span>${esc(i.txt)}<span class="sr">${i.ok ? ' — met' : ' — not met'}</span></span></li>`).join('')}</ul></div>`;
+}
+function datalist(id, values) { return `<datalist id="${id}">${[...new Set(values.filter(Boolean))].sort().map(v => `<option value="${esc(v)}">`).join('')}</datalist>`; }
+const people = () => [S.user, ...S.swabs.map(s => s.analyst), ...S.cases.map(c => c.owner), ...S.holds.map(h => h.placedBy), 'QA Manager'];
+
+/* ---------- global click delegation ---------- */
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-act]');
+  if (!t) {
+    if (!e.target.closest('.menu')) $('#menuDd').hidden = true;
+    if (!e.target.closest('.search')) $('#qres').hidden = true;
+    return;
+  }
+  const fn = A[t.dataset.act];
+  if (fn) { e.preventDefault(); $('#menuDd').hidden = true; fn(t.dataset, t); }
+});
+A['modal-close'] = () => closeModal();
+A['modal-save'] = () => { if (!M) return; const ok = M.onSave(M.draft); if (ok) { closeModal(); save(); render(); } else drawModal(); };
+A['go'] = d => { location.hash = '#' + d.route; };
+
+/* ============================================================
+   HOME DASHBOARD
+   ============================================================ */
+VIEWS.home = () => {
+  const openHolds = S.holds.filter(isOpenHold);
+  const oldest = openHolds.reduce((m, h) => Math.max(m, holdAging(h)), 0);
+  const od = overdueActions();
+  const due = sitesDue();
+  const s30 = S.swabs.filter(s => inLast(s.date, 30)); const f30 = s30.filter(s => s.result === 'Fail');
+  const awaiting = S.lots.filter(l => ['In Testing','Awaiting Review'].includes(l.status));
+  const pend = S.loads.filter(l => l.decision === 'Pending');
+  const noCoa = pend.filter(l => !l.coaReceived);
+  const compOver = S.compliance.filter(compOverdue);
+  const openCases = S.cases.filter(c => c.status !== 'Closed');
+  const sigs = signals();
+  const stat = (href, n, l, s, tone) => `<a class="stat t-${tone}" href="#${href}"><div class="n">${n}</div><div class="l">${l}</div><div class="s">${s}</div></a>`;
+  return `<div class="pagehead"><div><h1 style="font-size:21px">Dashboard</h1><p>Everything that needs attention today, across all QA modules · ${fmtD(today())}</p></div></div>
+  <div class="stats">
+    ${stat('capa', openHolds.length, 'Open holds', openHolds.length ? `oldest ${plural(oldest, 'day')} on hold` : 'nothing on hold', openHolds.length ? 'crit' : 'good')}
+    ${stat('capa', od.length, 'Overdue actions', `${od.filter(x => x.src === 'capa').length} CAPA · ${od.filter(x => x.src === 'em').length} EM · ${openCases.length} open cases`, od.length ? 'crit' : 'good')}
+    ${stat('em', due.length, 'Swab sites due', `${f30.length} failed of ${s30.length} in last 30 days`, f30.length ? 'warn' : 'good')}
+    ${stat('product', awaiting.length, 'Lots awaiting release', `${S.lots.filter(l => l.status === 'On Hold').length} lots on hold`, awaiting.length ? 'info' : 'good')}
+    ${stat('incoming', pend.length, 'Loads awaiting decision', `${noCoa.length} still waiting on COA`, pend.length ? 'info' : 'good')}
+    ${stat('compliance', compOver.length, 'Overdue assessments', `${S.compliance.filter(c => c.status === 'Gap Found').length} gaps found`, compOver.length ? 'warn' : 'good')}
+  </div>
+  <section class="panel"><div class="ph"><div><h2>What’s drifting</h2><p>Computed live from all modules: out-of-spec results, values trending toward a limit, in-house vs outside lab divergence, repeat positives, supplier issues.</p></div><a class="btn sm" href="#trending">Open Trending Center</a></div>
+    ${sigs.length ? `<div class="signals">${sigs.map(s => `<button class="sig ${s.tone}" data-act="go" data-route="${s.route}"><span class="ic" aria-hidden="true">${s.tone === 'crit' ? '✕' : s.tone === 'warn' ? '!' : '✓'}</span><span><span class="st">${esc(s.title)}</span><br><span class="sd">${esc(s.detail)}</span></span></button>`).join('')}</div>` : '<div class="empty">No drift signals — all monitored series are stable and in spec.</div>'}
+  </section>
+  <div class="cols wide-left">
+    <section class="panel"><div class="ph"><h2>Needs action</h2></div>${needsAction(od, openHolds, compOver)}</section>
+    <section class="panel"><div class="ph"><h2>Recent activity</h2></div>
+      ${S.activity.length ? `<ul class="feed">${S.activity.slice(0, 14).map(a => `<li><span><span class="fm">${esc(modName(a.mod))}</span><br><span class="ft">${fmtDs(a.ts.slice(0, 10))}</span></span><span>${esc(a.text)}${SB(a)}</span></li>`).join('')}</ul>` : '<div class="empty">No activity yet.</div>'}
+    </section>
+  </div>`;
+};
+function modName(m) { return { em:'Env. Mon.', product:'Product', incoming:'Incoming', capa:'Holds/CAPA', compliance:'Compliance', trending:'Trending', system:'System' }[m] || m; }
+function needsAction(od, holds, comp) {
+  const rows = [];
+  od.forEach(x => rows.push(`<div class="rec flag-crit"><div class="main"><div class="t">${pill('Overdue ' + plural(diffDays(x.a.due, today()), 'day'), 'crit', '✕')} ${esc(x.a.desc)}</div><div class="m">${esc(x.a.owner || '—')} · due ${fmtD(x.a.due)} · ${x.src === 'capa' ? esc(x.parent.num) : 'EM: ' + esc(x.parent.title)}</div></div><div class="acts"><button class="btn sm" data-act="open" data-kind="${x.src === 'capa' ? 'case' : 'inv'}" data-id="${x.parent.id}">Open</button></div></div>`));
+  holds.forEach(h => rows.push(`<div class="rec flag-warn"><div class="main"><div class="t">${pill(plural(holdAging(h), 'day') + ' on hold', 'warn', '!')} ${esc(h.num)} · ${esc(h.ref)}${SB(h)}</div><div class="m">${esc(h.reason)}${h.caseId ? ' · ' + esc(caseById(h.caseId)?.num || '') : ' · no case opened'}</div></div><div class="acts"><button class="btn sm" data-act="open" data-kind="hold" data-id="${h.id}">Disposition</button></div></div>`));
+  S.lots.filter(l => l.status === 'Awaiting Review').forEach(l => rows.push(`<div class="rec"><div class="main"><div class="t">${st('Awaiting Review')} Lot ${esc(l.code)}${SB(l)}</div><div class="m">${esc(productById(l.productId)?.name || '')} — all tests in spec; needs record-review sign-off</div></div><div class="acts"><button class="btn sm" data-act="open" data-kind="lot" data-id="${l.id}">Review</button></div></div>`));
+  comp.forEach(c => rows.push(`<div class="rec"><div class="main"><div class="t">${pill(c.program, 'info')} ${esc(c.item)}${SB(c)}</div><div class="m">Assessment due ${fmtD(c.due)} · ${esc(c.status)}</div></div><div class="acts"><button class="btn sm" data-act="open" data-kind="comp" data-id="${c.id}">Open</button></div></div>`));
+  return rows.length ? `<div class="list">${rows.join('')}</div>` : '<div class="empty">Nothing overdue. ✓</div>';
+}
+
+/* ---------- drift / trend signals (shared by dashboard + trending) ---------- */
+function productSeries(pid, key, from, to) {
+  return S.lots.filter(l => l.productId === pid && isNum((l.results || {})[key]) && (!from || inRange(l.date, from, to)))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+function signals() {
+  const out = [];
+  S.products.forEach(p => p.tests.filter(t => t.type === 'num').forEach(t => {
+    const ser = productSeries(p.id, t.key).filter(l => diffDays(l.date, today()) <= 120);
+    if (!ser.length) return;
+    const last = ser[ser.length - 1]; const v = Number(last.results[t.key]);
+    if (checkVal(t, v) === 'oos') { out.push({ tone:'crit', route:'product', title:`${t.name} out of spec — ${p.name}`, detail:`Lot ${last.code}: ${fmtNum(v, t.dp)}${t.unit ? ' ' + t.unit : ''} (spec ${specText(t)})` }); return; }
+    if (ser.length >= 3 && isNum(t.min) && isNum(t.max)) {
+      const l3 = ser.slice(-3).map(l => Number(l.results[t.key]));
+      const up = l3[0] < l3[1] && l3[1] < l3[2], down = l3[0] > l3[1] && l3[1] > l3[2];
+      const w = Number(t.max) - Number(t.min);
+      if (up && Number(t.max) - l3[2] < w * 0.2) out.push({ tone:'warn', route:'trending', title:`${t.name} trending toward upper limit — ${p.name}`, detail:`Last 3 lots rising: ${l3.map(x => fmtNum(x, t.dp)).join(' → ')} (max ${t.max})` });
+      if (down && l3[2] - Number(t.min) < w * 0.2) out.push({ tone:'warn', route:'trending', title:`${t.name} trending toward lower limit — ${p.name}`, detail:`Last 3 lots falling: ${l3.map(x => fmtNum(x, t.dp)).join(' → ')} (min ${t.min})` });
+    }
+    // in-house vs outside lab
+    const paired = ser.filter(l => isNum((l.outside || {})[t.key]));
+    if (paired.length >= 3) {
+      const tol = isNum(t.labTol) ? Number(t.labTol) : (isNum(t.min) && isNum(t.max) ? (Number(t.max) - Number(t.min)) * 0.1 : Infinity);
+      const diffs = paired.slice(-3).map(l => Number(l.results[t.key]) - Number(l.outside[t.key]));
+      const lastDiff = diffs[diffs.length - 1];
+      const growing = Math.abs(diffs[2]) > Math.abs(diffs[0]);
+      if (Math.abs(lastDiff) > tol || (growing && Math.abs(lastDiff) > tol * 0.6 && diffs.every(d => Math.sign(d) === Math.sign(lastDiff) && d !== 0)))
+        out.push({ tone: Math.abs(lastDiff) > tol ? 'crit' : 'warn', route:'trending', title:`In-house vs outside lab diverging — ${t.name}`, detail:`${p.name}: difference ${diffs.map(d => (d > 0 ? '+' : '') + d.toFixed(t.dp ?? 3)).join(' → ')} ${t.unit} (tolerance ±${tol})` });
+    }
+  }));
+  S.sites.filter(s => isRepeatSite(s.id)).forEach(s => out.push({ tone:'crit', route:'em', title:`Repeat positive — ${s.name}`, detail:`${siteFails(s.id, today()).length} positives at Zone ${s.zone} site in the last ${REPEAT_WINDOW} days` }));
+  const wk = S.swabs.filter(s => inLast(s.date, 7)), prev = S.swabs.filter(s => validDate(s.date) && diffDays(s.date, today()) >= 7 && diffDays(s.date, today()) < 14);
+  const wf = wk.filter(s => s.result === 'Fail').length, pf = prev.filter(s => s.result === 'Fail').length;
+  if (wf > pf) out.push({ tone:'warn', route:'em', title:'EM failures up this week', detail:`${wf} failures in the last 7 days vs ${pf} the week before` });
+  const sup = {};
+  S.loads.filter(l => inLast(l.received, 60) && ['Hold','Reject'].includes(l.decision)).forEach(l => { sup[l.supplier] = (sup[l.supplier] || 0) + 1; });
+  Object.entries(sup).forEach(([s, n]) => out.push({ tone:'warn', route:'incoming', title:`Supplier issue — ${s}`, detail:`${plural(n, 'load')} held or rejected in the last 60 days` }));
+  const order = { crit:0, warn:1, good:2 };
+  return out.sort((a, b) => order[a.tone] - order[b.tone]);
+}
+
+/* ============================================================
+   MODULE 1 — ENVIRONMENTAL MONITORING
+   ============================================================ */
+VIEWS.em = () => {
+  const s30 = S.swabs.filter(s => inLast(s.date, 30)); const f30 = s30.filter(s => s.result === 'Fail');
+  const openInv = S.emInv.filter(i => i.status !== 'Closed');
+  const due = sitesDue();
+  let swabs = S.swabs.slice().sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  if (UI.emSite) swabs = swabs.filter(s => s.siteId === UI.emSite);
+  if (UI.emFilter === 'fail') swabs = swabs.filter(s => s.result === 'Fail');
+  if (UI.emFilter === '30') swabs = swabs.filter(s => inLast(s.date, 30));
+  const shown = swabs.slice(0, 60);
+  const selSite = siteById(UI.emSite);
+  return `<div class="pagehead"><div><h1 style="font-size:21px">Environmental Monitoring</h1><p>Swab records by site and zone, repeat-positive flagging, investigations and corrective actions.</p></div>
+    <div class="btns"><button class="btn primary" data-act="new-swab">+ Swab result</button><button class="btn" data-act="new-inv">+ Investigation</button><button class="btn" data-act="new-site">+ Site</button><button class="btn" data-act="csv" data-mod="em">Export CSV</button></div></div>
+  <div class="stats">
+    <div class="stat t-${pct(s30.length - f30.length, s30.length) >= 90 ? 'good' : 'warn'}"><div class="n">${s30.length ? pct(s30.length - f30.length, s30.length) + '%' : '—'}</div><div class="l">Pass rate, last 30 days</div><div class="s">${s30.length - f30.length} of ${s30.length} swabs passed</div></div>
+    <div class="stat t-${f30.length ? 'crit' : 'good'}"><div class="n">${f30.length}</div><div class="l">Fails, last 30 days</div><div class="s">${f30.filter(s => isPathogen(s.type)).length} pathogen · ${f30.filter(s => s.type === 'ATP').length} ATP</div></div>
+    <div class="stat t-${openInv.length ? 'warn' : 'good'}"><div class="n">${openInv.length}</div><div class="l">Open investigations</div><div class="s">${openInv.reduce((n, i) => n + i.actions.filter(actionOverdue).length, 0)} overdue actions</div></div>
+    <div class="stat t-${due.length ? 'info' : 'good'}"><div class="n">${due.length}</div><div class="l">Sites due for swabbing</div><div class="s">of ${S.sites.length} sites on the program</div></div>
+  </div>
+  <section class="panel"><div class="ph"><div><h2>Site map by zone</h2><p>Tap a site to filter swab records. Repeat positive = 2+ positives within ${REPEAT_WINDOW} days.</p></div>${UI.emSite ? `<button class="btn sm" data-act="em-site" data-id="">Show all sites</button>` : ''}</div>
+    <div class="zones">${[1,2,3,4].map(z => `<div class="zone"><h3>Zone ${z}</h3><div class="zd">${ZONES[z]}</div>
+      ${S.sites.filter(s => Number(s.zone) === z).map(s => { const l = siteLast(s.id); const rep = isRepeatSite(s.id); const nd = siteNextDue(s);
+        return `<button class="site ${UI.emSite === s.id ? 'sel' : ''}" data-act="em-site" data-id="${s.id}" aria-pressed="${UI.emSite === s.id}"><div class="sn">${esc(s.name)}${SB(s)}</div><div class="sm">
+          ${l ? st(l.result === 'Fail' ? (isPathogen(l.type) ? 'Positive' : 'Fail') : (isPathogen(l.type) ? 'Negative' : 'Pass')) : pill('No swabs')}
+          ${rep ? pill('Repeat positive', 'crit', '✕') : ''}<span>${nd <= today() ? '<b>Due now</b>' : 'Next ' + fmtDs(nd)}</span></div></button>`; }).join('') || '<div class="tiny muted">No sites</div>'}</div>`).join('')}</div>
+  </section>
+  <div class="cols wide-left">
+  <section class="panel"><div class="ph"><div><h2>Swab records${selSite ? ' — ' + esc(selSite.name) : ''}</h2><p>${swabs.length} records${swabs.length > shown.length ? ` · showing newest ${shown.length}` : ''}</p></div>
+    <div class="seg" role="group" aria-label="Filter swabs">${[['all','All'],['30','Last 30 days'],['fail','Fails only']].map(([k, n]) => `<button class="${UI.emFilter === k ? 'on' : ''}" data-act="em-filter" data-f="${k}">${n}</button>`).join('')}</div></div>
+    ${shown.length ? `<div class="list">${shown.map(swabRow).join('')}</div>` : '<div class="empty">No swab records match.</div>'}
+  </section>
+  <section class="panel"><div class="ph"><div><h2>Investigations</h2><p>Corrective actions per investigation, with owners and due dates.</p></div></div>
+    ${S.emInv.length ? `<div class="list">${S.emInv.slice().sort((a, b) => (a.status === 'Closed') - (b.status === 'Closed') || b.opened.localeCompare(a.opened)).map(invRow).join('')}</div>` : '<div class="empty">No investigations.</div>'}
+  </section></div>`;
+};
+function swabRow(s) {
+  const site = siteById(s.siteId); const fail = s.result === 'Fail';
+  const c = s.caseId && caseById(s.caseId);
+  return `<div class="rec ${fail ? 'flag-crit' : ''}"><div class="main"><div class="t">${esc(site?.name || 'Unknown site')} ${pill('Z' + (site?.zone || '?'))} ${st(isPathogen(s.type) ? (fail ? 'Positive' : 'Negative') : s.result)}${SB(s)}</div>
+    <div class="m">${fmtD(s.date)} · ${esc(s.type)}${s.type === 'ATP' ? ' · ' + esc(swabResultLabel(s)) : ''} · ${esc(s.analyst || '—')}${s.notes ? ' · ' + esc(s.notes) : ''}</div></div>
+    <div class="acts">${c ? `<button class="btn sm" data-act="open" data-kind="case" data-id="${c.id}">${esc(c.num)} ↗</button>` : (swabCaseEligible(s) ? `<button class="btn sm warn" data-act="case-from" data-kind="swab" data-id="${s.id}">Open CAPA case</button>` : '')}
+    <button class="btn sm" data-act="open" data-kind="swab" data-id="${s.id}">Edit</button></div></div>`;
+}
+function invRow(i) {
+  const od = i.actions.filter(actionOverdue).length; const done = i.actions.filter(a => a.done).length;
+  return `<div class="rec ${i.status !== 'Closed' ? (od ? 'flag-crit' : 'flag-warn') : ''}"><div class="main"><div class="t">${esc(i.title)}${SB(i)}</div>
+    <div class="m">${esc(siteById(i.siteId)?.name || '')} · opened ${fmtD(i.opened)} · ${st(i.status)} · actions ${done}/${i.actions.length} done${od ? ` · <b style="color:var(--crit-ink)">${od} overdue</b>` : ''}</div>
+    <div class="m">${i.actions.map(a => `<div>${a.done ? '☑' : '☐'} ${esc(a.desc)} <span class="muted">— ${esc(a.owner)}, due ${fmtDs(a.due)}</span>${actionOverdue(a) ? ' ' + pill('Overdue', 'crit', '✕') : ''}</div>`).join('')}</div></div>
+    <div class="acts">${i.caseId && caseById(i.caseId) ? `<button class="btn sm" data-act="open" data-kind="case" data-id="${i.caseId}">${esc(caseById(i.caseId).num)} ↗</button>` : `<button class="btn sm" data-act="case-from" data-kind="inv" data-id="${i.id}">Escalate to CAPA</button>`}
+    <button class="btn sm" data-act="open" data-kind="inv" data-id="${i.id}">Edit</button></div></div>`;
+}
+A['em-site'] = d => { UI.emSite = UI.emSite === d.id ? '' : d.id; render(); };
+A['em-filter'] = d => { UI.emFilter = d.f; render(); };
+
+function swabEditor(s, isNew) {
+  openModal({ title: isNew ? 'New swab result' : 'Edit swab result', draft: clone(s),
+    body: d => {
+      const site = siteById(d.siteId);
+      const auto = d.type === 'ATP' && isNum(d.value);
+      return `<div class="form two">
+        ${F.sel('Site', 'siteId', d, S.sites.map(x => [x.id, `Z${x.zone} · ${x.name}`]), { rr:true, hint: site ? ZONES[site.zone] : '' })}
+        ${F.date('Date swabbed', 'date', d)}
+        ${F.sel('Test type', 'type', d, EM_TYPES, { rr:true })}
+        ${d.type === 'ATP' ? F.text(`ATP reading (RLU) — pass ≤ ${ATP_LIMIT}`, 'value', d, { inputmode:'numeric', live:true, hint: auto ? `Result set automatically: <b>${Number(d.value) > ATP_LIMIT ? 'Fail' : 'Pass'}</b>` : '' })
+          : F.sel('Result', 'result', d, [['Pass','Negative (Pass)'],['Fail','Positive (Fail)']], { rr:true })}
+        ${F.text('Analyst', 'analyst', d, { list:'dl-people' })}
+        ${F.area('Notes', 'notes', d, { ph:'e.g. presumptive positive, re-swab plan' })}
+      </div>${datalist('dl-people', people())}
+      ${site && Number(site.zone) === 1 && (d.result === 'Fail' || (auto && Number(d.value) > ATP_LIMIT)) ? `<div class="gate no"><h4>Zone 1 failure</h4><ul><li class="n"><span class="i">!</span><span>After saving, you can open a pre-filled CAPA case in one tap.</span></li></ul></div>` : ''}`;
+    },
+    extra: d => isNew ? '' : `<button class="btn danger" data-act="del" data-kind="swab" data-id="${d.id}">Delete</button>`,
+    onSave: d => {
+      const errs = [];
+      if (!siteById(d.siteId)) errs.push('Choose a site.');
+      if (!validDate(d.date)) errs.push('Enter the swab date.');
+      if (d.type === 'ATP') { if (!isNum(d.value)) errs.push('Enter the ATP reading in RLU.'); else d.result = Number(d.value) > ATP_LIMIT ? 'Fail' : 'Pass'; }
+      else { d.value = ''; if (!['Pass','Fail'].includes(d.result)) errs.push('Choose a result.'); }
+      if (errs.length) { M.error = { title:'Can’t save yet', items: errs }; return false; }
+      upsert('swabs', d);
+      const site = siteById(d.siteId);
+      log('em', `${site.name} — ${d.type} ${isPathogen(d.type) ? (d.result === 'Fail' ? 'positive' : 'negative') : d.result.toLowerCase() + ' (' + d.value + ' RLU)'}`);
+      if (d.result === 'Fail' && !d.caseId) {
+        const elig = swabCaseEligible(d);
+        setTimeout(() => toast(elig ? `${Number(site.zone) === 1 ? 'Zone 1 failure' : 'Repeat positive'} at ${site.name}.` : `Failure recorded at ${site.name}.`, 'crit', elig ? { label:'Open CAPA case', fn: () => caseFrom('swab', d.id) } : null), 50);
+      }
+      return true;
+    } });
+}
+function invEditor(inv, isNew) {
+  openModal({ title: isNew ? 'New EM investigation' : 'EM investigation', draft: clone(inv),
+    body: d => `<div class="form two">
+        ${F.text('Title', 'title', d, { full:true })}
+        ${F.sel('Site', 'siteId', d, S.sites.map(x => [x.id, `Z${x.zone} · ${x.name}`]))}
+        ${F.date('Opened', 'opened', d)}
+        ${F.sel('Status', 'status', d, ['Open','Closed'])}
+        ${F.area('Notes', 'notes', d, { rows:3 })}
+      </div>
+      <div class="sec"><h3>Corrective actions</h3>${actionList(d, 'actions')}</div>${datalist('dl-people', people())}`,
+    extra: d => isNew ? '' : `<button class="btn danger" data-act="del" data-kind="inv" data-id="${d.id}">Delete</button>`,
+    onSave: d => {
+      const errs = [];
+      if (!d.title) errs.push('Enter a title.');
+      if (!validDate(d.opened)) errs.push('Enter the date opened.');
+      d.actions = d.actions.filter(a => a.desc);
+      if (d.status === 'Closed' && d.actions.some(a => !a.done)) errs.push('Close or complete every corrective action before closing the investigation.');
+      if (errs.length) { M.error = { title:'Can’t save yet', items: errs }; return false; }
+      upsert('emInv', d); log('em', `Investigation ${isNew ? 'opened' : 'updated'}: ${d.title}`); return true;
+    } });
+}
+function siteEditor(s, isNew) {
+  openModal({ title: isNew ? 'New swab site' : 'Edit swab site', draft: clone(s),
+    body: d => `<div class="form two">${F.text('Site name', 'name', d, { full:true })}${F.sel('Zone', 'zone', d, [1,2,3,4].map(z => [z, `Zone ${z} — ${ZONES[z]}`]))}${F.text('Area / room', 'area', d)}${F.text('Swab frequency (days)', 'freq', d, { inputmode:'numeric' })}</div>`,
+    extra: d => isNew ? '' : `<button class="btn danger" data-act="del" data-kind="site" data-id="${d.id}">Delete</button>`,
+    onSave: d => { if (!d.name) { M.error = { title:'Can’t save yet', items:['Enter a site name.'] }; return false; } d.zone = Number(d.zone); d.freq = Number(d.freq) || 7; upsert('sites', d); log('em', `Site ${isNew ? 'added' : 'updated'}: ${d.name}`); return true; } });
+}
+A['new-swab'] = () => swabEditor({ id: uid('sw'), siteId: UI.emSite || S.sites[0]?.id || '', date: today(), type: 'Listeria spp.', value:'', result:'Pass', analyst: S.user, notes:'', caseId:'' }, true);
+A['new-inv'] = () => invEditor({ id: uid('inv'), title:'', siteId: UI.emSite || S.sites[0]?.id || '', opened: today(), status:'Open', notes:'', actions:[], caseId:'' }, true);
+A['new-site'] = () => siteEditor({ id: uid('st'), name:'', zone:2, area:'', freq:7 }, true);
+
+/* shared action-list editor (corrective / preventive / EM actions) */
+function actionList(d, path) {
+  const arr = getPath(d, path) || [];
+  return `${arr.length ? arr.map((a, i) => `<div class="arow"><input type="checkbox" data-b="${path}.${i}.done" ${a.done ? 'checked' : ''} data-rr aria-label="Done">
+    <div class="af"><input type="text" data-b="${path}.${i}.desc" value="${esc(a.desc)}" placeholder="Action" aria-label="Action description">
+    <input type="text" data-b="${path}.${i}.owner" value="${esc(a.owner)}" placeholder="Owner" list="dl-people" aria-label="Owner">
+    <input type="date" data-b="${path}.${i}.due" value="${esc(a.due)}" data-rr aria-label="Due date">
+    <span class="btns">${actionOverdue(a) ? pill('Overdue', 'crit', '✕') : a.done ? pill('Done', 'good', '✓') : ''}<button class="btn sm ghost" data-act="act-del" data-path="${path}" data-i="${i}" aria-label="Remove action">✕</button></span></div></div>`).join('') : '<div class="tiny muted" style="margin-bottom:6px">No actions yet.</div>'}
+    <button class="btn sm" data-act="act-add" data-path="${path}" style="margin-top:8px">+ Add action</button>`;
+}
+A['act-add'] = d => { const arr = getPath(M.draft, d.path); arr.push({ id: uid('a'), desc:'', owner: S.user, due: addDays(today(), 14), done:false }); drawModal(); };
+A['act-del'] = d => { getPath(M.draft, d.path).splice(Number(d.i), 1); drawModal(); };
+
+/* ============================================================
+   MODULE 2 — FINISHED PRODUCT EVALUATION & RELEASE
+   ============================================================ */
+VIEWS.product = () => {
+  const by = s => S.lots.filter(l => l.status === s);
+  let lots = S.lots.slice().sort((a, b) => b.date.localeCompare(a.date));
+  if (UI.lotFilter === 'open') lots = lots.filter(l => l.status !== 'Released' && l.status !== 'Rejected');
+  else if (UI.lotFilter !== 'all') lots = lots.filter(l => l.status === UI.lotFilter);
+  const oos30 = S.lots.filter(l => inLast(l.date, 30) && lotEval(l).oos.length).length;
+  const rel = S.releases.slice().sort((a, b) => b.date.localeCompare(a.date));
+  return `<div class="pagehead"><div><h1 style="font-size:21px">Product Evaluation & Release</h1><p>pH, Brix, sensory and other analytical tests checked against spec. Release is gated in code.</p></div>
+    <div class="btns"><button class="btn primary" data-act="new-lot">+ Lot</button><button class="btn" data-act="new-product">+ Product spec</button><button class="btn" data-act="csv" data-mod="product">Export CSV</button></div></div>
+  <div class="stats">
+    <div class="stat t-info"><div class="n">${by('Awaiting Review').length + by('In Testing').length}</div><div class="l">Awaiting release</div><div class="s">${by('In Testing').length} in testing · ${by('Awaiting Review').length} awaiting review</div></div>
+    <div class="stat t-${by('On Hold').length ? 'crit' : 'good'}"><div class="n">${by('On Hold').length}</div><div class="l">Lots on hold</div><div class="s">${by('Rejected').length} rejected all-time</div></div>
+    <div class="stat t-good"><div class="n">${S.releases.filter(r => inLast(r.date, 30)).length}</div><div class="l">Released, last 30 days</div><div class="s">${S.releases.length} releases logged</div></div>
+    <div class="stat t-${oos30 ? 'warn' : 'good'}"><div class="n">${oos30}</div><div class="l">Lots with OOS results</div><div class="s">last 30 days</div></div>
+  </div>
+  <section class="panel"><div class="ph"><div><h2>Lots</h2><p>${lots.length} shown</p></div>
+    <div class="seg" role="group" aria-label="Filter lots">${[['open','Open'],['On Hold','On hold'],['Released','Released'],['all','All']].map(([k, n]) => `<button class="${UI.lotFilter === k ? 'on' : ''}" data-act="lot-filter" data-f="${k}">${n}</button>`).join('')}</div></div>
+    ${lots.length ? `<div class="list">${lots.map(lotRow).join('')}</div>` : '<div class="empty">No lots match this filter.</div>'}
+  </section>
+  <div class="cols wide-left">
+  <section class="panel"><div class="ph"><div><h2>Release history</h2><p>Who released what, when, on what data.</p></div></div>
+    ${rel.length ? `<div class="tw"><table class="tbl"><thead><tr><th>Released</th><th>Lot</th><th>Product</th><th>Released by</th><th>Reviewed by</th><th>Data at release</th></tr></thead><tbody>
+      ${rel.slice(0, 40).map(r => `<tr><td>${fmtD(r.date)}</td><td><b>${esc(r.code)}</b>${SB(r)}</td><td>${esc(r.product)}</td><td>${esc(r.by)}</td><td>${esc(r.reviewer)}</td><td class="tiny">${esc(r.data)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">No releases yet.</div>'}
+  </section>
+  <section class="panel"><div class="ph"><div><h2>Products & spec limits</h2><p>Tests and limits each lot is checked against.</p></div></div>
+    <div class="list">${S.products.map(p => `<div class="rec"><div class="main"><div class="t">${esc(p.name)}${SB(p)}</div><div class="m">${p.tests.map(t => `${esc(t.name)}: ${esc(specText(t))}${t.req ? '' : ' (optional)'}`).join(' · ')}</div></div><div class="acts"><button class="btn sm" data-act="open" data-kind="product" data-id="${p.id}">Edit spec</button></div></div>`).join('') || '<div class="empty">No products — add a product spec first.</div>'}</div>
+  </section></div>`;
+};
+function lotChips(l) {
+  const ev = lotEval(l);
+  return `<div class="chips">${ev.rows.map(r => `<span class="chip ${r.st === 'oos' ? 'oos' : r.st === 'missing' ? 'miss' : ''}">${esc(r.t.name.replace(/ \(.*\)/, ''))} ${r.t.type === 'pf' ? esc(r.v || '—') : fmtNum(r.v, r.t.dp)}${r.st === 'oos' ? ' ✕' : r.st === 'ok' ? ' ✓' : ''}</span>`).join('')}</div>`;
+}
+function lotRow(l) {
+  const p = productById(l.productId); const c = l.caseId && caseById(l.caseId); const h = openHoldFor('lot', l.id);
+  const tone = l.status === 'On Hold' ? 'flag-crit' : l.status === 'Awaiting Review' ? 'flag-warn' : l.status === 'Released' ? 'flag-good' : '';
+  return `<div class="rec ${tone}"><div class="main"><div class="t">Lot ${esc(l.code)} ${st(l.status)}${SB(l)}</div>
+    <div class="m">${esc(p?.name || 'Unknown product')} · ${fmtD(l.date)}${l.status === 'Released' ? ` · released by ${esc(l.releasedBy)}, reviewed by ${esc(l.review?.by)}` : ''}${h ? ` · ${esc(h.num)} open ${plural(holdAging(h), 'day')}` : ''}</div>${lotChips(l)}</div>
+    <div class="acts">${c ? `<button class="btn sm" data-act="open" data-kind="case" data-id="${c.id}">${esc(c.num)} ↗</button>` : (l.status === 'On Hold' ? `<button class="btn sm warn" data-act="case-from" data-kind="lot" data-id="${l.id}">Open CAPA case</button>` : '')}
+    <button class="btn sm ${l.status === 'Awaiting Review' ? 'primary' : ''}" data-act="open" data-kind="lot" data-id="${l.id}">${l.status === 'Awaiting Review' ? 'Review & release' : 'Open'}</button></div></div>`;
+}
+A['lot-filter'] = d => { UI.lotFilter = d.f; render(); };
+
+function lotEditor(lot, isNew) {
+  const wasReleased = lot.status === 'Released';
+  openModal({ title: isNew ? 'New lot' : `Lot ${esc(lot.code)}`, draft: clone(lot),
+    body: d => {
+      const ev = lotEval(d); const gate = releaseGate(d); const p = ev.p;
+      const hasLab = p && p.tests.some(t => t.type === 'num');
+      return `<div class="form two">
+        ${F.sel('Product', 'productId', d, [['', '— choose —'], ...S.products.map(x => [x.id, x.name])], { rr:true })}
+        ${F.date('Production date', 'date', d, { rr:true })}
+        ${F.text('Lot code', 'code', d, { hint: p && validDate(d.date) ? `Suggested: <button type="button" class="btn sm ghost" data-act="lot-code">${esc(lotCodeFor(p.prefix || 'LOT', d.date))}</button>` : '' })}
+        ${F.sel('Status', 'status', d, LOT_STATUSES, { rr:true, hint:'Out-of-spec results force <b>On Hold</b>. <b>Released</b> is only accepted when the release gate passes.' })}
+      </div>
+      <div class="sec"><h3>Test results ${p ? '<span class="tiny muted" style="font-weight:400">— checked live against spec</span>' : ''}</h3>
+      ${p ? `<div class="trow lab" style="border:0;padding-bottom:0"><span class="tiny muted">Test · spec</span><span class="tiny muted">In-house</span><span class="tiny muted">Outside lab (optional)</span><span></span></div>
+        ${ev.rows.map(r => `<div class="trow lab"><div><div class="tn">${esc(r.t.name)}${r.t.req ? '' : ' <span class="tiny muted">(optional)</span>'}</div><div class="ts">${esc(specText(r.t))}</div></div>
+        ${r.t.type === 'pf' ? `<select data-b="results.${r.t.key}" data-rr aria-label="${esc(r.t.name)}"><option value="">—</option>${['Pass','Fail'].map(o => `<option ${r.v === o ? 'selected' : ''}>${o}</option>`).join('')}</select><span></span>`
+          : `<input type="text" inputmode="decimal" data-b="results.${r.t.key}" value="${esc(r.v ?? '')}" data-live aria-label="${esc(r.t.name)} in-house"><input type="text" inputmode="decimal" data-b="outside.${r.t.key}" value="${esc((d.outside || {})[r.t.key] ?? '')}" aria-label="${esc(r.t.name)} outside lab">`}
+        <span class="ti ${r.st}" title="${r.st === 'ok' ? 'In spec' : r.st === 'oos' ? 'Out of spec' : 'Not entered'}">${r.st === 'ok' ? '✓' : r.st === 'oos' ? '✕' : '–'}</span></div>`).join('')}
+        ${F.area('Sensory notes', 'sensoryNotes', d, { ph:'appearance, aroma, flavor, texture' })}` : '<div class="empty">Choose a product to load its tests and spec limits.</div>'}
+      ${ev.oos.length ? `<div class="err" style="margin-top:10px"><b>Out of specification:</b> ${ev.oos.map(r => esc(r.t.name)).join(', ')}. Saving will place this lot <b>On Hold</b> and log a hold record.</div>` : ''}
+      </div>
+      <div class="sec"><h3>Record review & release</h3><div class="form two">
+        ${F.text('Reviewed by', 'review.by', d, { list:'dl-people', rr:true })}${F.date('Review date', 'review.date', d, { rr:true })}
+        ${F.text('Released by', 'releasedBy', d, { list:'dl-people', rr:true })}
+        ${F.area('Notes', 'notes', d)}</div>
+        ${gateBox('Release gate — not yet releasable', gate, 'Release gate passed — lot can be saved as Released')}
+      </div>${datalist('dl-people', people())}`;
+    },
+    extra: d => `${d.status === 'On Hold' && !d.caseId && !isNew ? `<button class="btn warn" data-act="case-from" data-kind="lot" data-id="${d.id}">Open CAPA case</button>` : ''}${isNew ? '' : `<button class="btn danger" data-act="del" data-kind="lot" data-id="${d.id}">Delete</button>`}`,
+    onSave: d => commitLot(d, isNew, wasReleased),
+  });
+}
+A['lot-code'] = () => { const p = productById(M.draft.productId); if (p) { M.draft.code = lotCodeFor(p.prefix || 'LOT', M.draft.date); drawModal(); } };
+
+/* Release gate + auto-hold — enforced here, at the data layer, not only in the form. */
+function commitLot(d, isNew, wasReleased) {
+  const errs = [];
+  if (!productById(d.productId)) errs.push('Choose a product.');
+  if (!validDate(d.date)) errs.push('Enter the production date.');
+  if (!d.code) errs.push('Enter a lot code.');
+  if (S.lots.some(l => l.code === d.code && l.id !== d.id)) errs.push(`Lot code ${d.code} already exists.`);
+  if (errs.length) { M.error = { title:'Can’t save yet', items: errs }; return false; }
+  const ev = lotEval(d);
+  let autoHeld = false;
+  if (d.status === 'Released') {
+    const g = releaseGate(d);
+    if (!gateOk(g)) { M.error = { title:'Release blocked — the release gate is not met', items: g.filter(x => !x.ok).map(x => x.txt) }; return false; }
+  } else if (ev.oos.length && d.status !== 'Rejected') {
+    autoHeld = d.status !== 'On Hold'; d.status = 'On Hold';
+  } else if (d.status === 'In Testing' && !ev.missing.length) d.status = 'Awaiting Review';
+  const p = ev.p;
+  upsert('lots', d);
+  if (d.status === 'On Hold' && !openHoldFor('lot', d.id)) {
+    S.holds.push({ id: uid('h'), num: nextHoldNum(), itemType:'Finished lot', ref: `${d.code} · ${p.name}`, link:{ kind:'lot', id:d.id },
+      reason: ev.oos.length ? ev.oos.map(r => `${r.t.name} ${r.t.type === 'pf' ? r.v : fmtNum(r.v, r.t.dp)} (spec ${specText(r.t)})`).join('; ') : 'Placed on hold by QA',
+      placed: today(), placedBy: S.user, status:'On Hold', disposition:'', dispDate:'', caseId: d.caseId || '' });
+    log('capa', `Hold placed on lot ${d.code}${ev.oos.length ? ' — out of spec: ' + ev.oos.map(r => r.t.name).join(', ') : ''}`);
+  }
+  if (d.status === 'Released' && !wasReleased) {
+    S.releases.push({ id: uid('rel'), lotId: d.id, code: d.code, product: p.name, date: today(), by: d.releasedBy, reviewer: d.review.by,
+      data: p.tests.map(t => `${t.name} ${t.type === 'pf' ? (d.results[t.key] || '—') : fmtNum(d.results[t.key], t.dp)}`).join('; ') });
+    log('product', `Lot ${d.code} ${p.name} released by ${d.releasedBy} (reviewed by ${d.review.by})`);
+  } else log('product', `Lot ${d.code} ${isNew ? 'entered' : 'updated'} — ${d.status}`);
+  if (autoHeld || (d.status === 'On Hold' && !d.caseId && ev.oos.length)) setTimeout(() => toast(`Lot ${d.code} is out of spec and was placed On Hold.`, 'crit', d.caseId ? null : { label:'Open CAPA case', fn: () => caseFrom('lot', d.id) }), 50);
+  return true;
+}
+A['new-lot'] = () => {
+  const p = S.products[0];
+  lotEditor({ id: uid('lot'), productId: p ? p.id : '', code: p ? lotCodeFor(p.prefix || 'LOT', today()) : '', date: today(), results:{}, outside:{}, sensoryNotes:'', status:'In Testing', review:{ by:'', date:'' }, releasedBy:'', notes:'', caseId:'' }, true);
+};
+
+/* spec editor — shared by products and materials */
+function specEditor(kind, obj, isNew) {
+  const coll = kind === 'product' ? 'products' : 'materials';
+  openModal({ title: isNew ? `New ${kind === 'product' ? 'product' : 'material'} spec` : `Edit spec — ${esc(obj.name)}`, draft: clone(obj),
+    body: d => `<div class="form two">${F.text(kind === 'product' ? 'Product name' : 'Material name', 'name', d, { full: kind !== 'product' })}
+      ${kind === 'product' ? F.text('Lot code prefix', 'prefix', d, { hint:'e.g. OJ → OJ-26318' }) : F.sel('Category', 'category', d, ['Ingredient','Packaging','Raw material','Processing aid'])}</div>
+      <div class="sec"><h3>${kind === 'product' ? 'Tests & limits' : 'COA parameters & limits'}</h3>
+      ${d.tests.map((t, i) => `<div class="arow" style="grid-template-columns:minmax(0,1fr)"><div class="af" style="grid-template-columns:repeat(auto-fit,minmax(110px,1fr))">
+        <input type="text" data-b="tests.${i}.name" value="${esc(t.name)}" placeholder="Test name" aria-label="Test name">
+        <select data-b="tests.${i}.type" data-rr aria-label="Type"><option value="num" ${t.type === 'num' ? 'selected' : ''}>Numeric</option><option value="pf" ${t.type === 'pf' ? 'selected' : ''}>Pass / Fail</option></select>
+        ${t.type === 'num' ? `<input type="text" data-b="tests.${i}.unit" value="${esc(t.unit)}" placeholder="Unit" aria-label="Unit">
+        <input type="text" inputmode="decimal" data-b="tests.${i}.min" value="${esc(t.min)}" placeholder="Min" aria-label="Minimum">
+        <input type="text" inputmode="decimal" data-b="tests.${i}.max" value="${esc(t.max)}" placeholder="Max" aria-label="Maximum">` : ''}
+        <span class="btns"><label class="chk tiny"><input type="checkbox" data-b="tests.${i}.req" ${t.req ? 'checked' : ''}> Required</label><button class="btn sm ghost" data-act="spec-del" data-i="${i}" aria-label="Remove test">✕</button></span></div></div>`).join('')}
+      <button class="btn sm" data-act="spec-add" style="margin-top:8px">+ Add ${kind === 'product' ? 'test' : 'parameter'}</button></div>`,
+    extra: d => isNew ? '' : `<button class="btn danger" data-act="del" data-kind="${kind}" data-id="${d.id}">Delete</button>`,
+    onSave: d => {
+      const errs = [];
+      if (!d.name) errs.push('Enter a name.');
+      d.tests = d.tests.filter(t => t.name);
+      d.tests.forEach(t => {
+        if (!t.key) t.key = t.name.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 12) || uid('t');
+        if (t.type === 'num') { ['min','max'].forEach(k => { if (t[k] !== '' && !isNum(t[k])) errs.push(`${t.name}: ${k} must be a number.`); else if (t[k] !== '') t[k] = Number(t[k]); });
+          if (isNum(t.min) && isNum(t.max) && Number(t.min) > Number(t.max)) errs.push(`${t.name}: min is above max.`);
+          const dec = [t.min, t.max].filter(isNum).map(v => (String(v).split('.')[1] || '').length); t.dp = dec.length ? Math.max(...dec) : t.dp; }
+      });
+      const keys = d.tests.map(t => t.key); if (new Set(keys).size !== keys.length) errs.push('Two tests share the same name — rename one.');
+      if (errs.length) { M.error = { title:'Can’t save yet', items: errs }; return false; }
+      upsert(coll, d); log(kind === 'product' ? 'product' : 'incoming', `Spec ${isNew ? 'added' : 'updated'}: ${d.name}`); return true;
+    } });
+}
+A['spec-add'] = () => { M.draft.tests.push({ key:'', name:'', unit:'', min:'', max:'', type:'num', req:true }); drawModal(); };
+A['spec-del'] = d => { M.draft.tests.splice(Number(d.i), 1); drawModal(); };
+A['new-product'] = () => specEditor('product', { id: uid('p'), name:'', prefix:'', tests:[{ key:'ph', name:'pH', unit:'', min:'', max:'', type:'num', req:true, dp:2 }, { key:'sensory', name:'Sensory', unit:'', min:'', max:'', type:'pf', req:true }] }, true);
+A['new-material'] = () => specEditor('material', { id: uid('m'), name:'', category:'Ingredient', tests:[] }, true);
+
+/* ============================================================
+   MODULE 3 — INCOMING MATERIALS & COA CONTROL
+   ============================================================ */
+VIEWS.incoming = () => {
+  let loads = S.loads.slice().sort((a, b) => b.received.localeCompare(a.received));
+  if (UI.loadFilter === 'pending') loads = loads.filter(l => l.decision === 'Pending');
+  if (UI.loadFilter === 'flag') loads = loads.filter(l => loadEval(l).coaOos.length || !l.coaReceived || ['Hold','Reject'].includes(l.decision));
+  const pend = S.loads.filter(l => l.decision === 'Pending'); const l90 = S.loads.filter(l => inLast(l.received, 90));
+  const hr = l90.filter(l => ['Hold','Reject'].includes(l.decision)).length;
+  return `<div class="pagehead"><div><h1 style="font-size:21px">Incoming Materials & COA Control</h1><p>Receiving records, COA verification against internal spec, and Accept / Hold / Reject decisions.</p></div>
+    <div class="btns"><button class="btn primary" data-act="new-load">+ Receive load</button><button class="btn" data-act="new-material">+ Material spec</button><button class="btn" data-act="csv" data-mod="incoming">Export CSV</button></div></div>
+  <div class="stats">
+    <div class="stat t-${pend.length ? 'info' : 'good'}"><div class="n">${pend.length}</div><div class="l">Awaiting decision</div><div class="s">${pend.filter(l => !l.coaReceived).length} waiting on COA</div></div>
+    <div class="stat t-${S.loads.filter(l => l.decision === 'Hold').length ? 'crit' : 'good'}"><div class="n">${S.loads.filter(l => l.decision === 'Hold').length}</div><div class="l">Loads on hold</div><div class="s">${S.loads.filter(l => l.decision === 'Reject').length} rejected all-time</div></div>
+    <div class="stat t-${S.loads.filter(l => loadEval(l).coaOos.length).length ? 'warn' : 'good'}"><div class="n">${S.loads.filter(l => loadEval(l).coaOos.length).length}</div><div class="l">COA out of spec</div><div class="s">flagged before disposition</div></div>
+    <div class="stat t-info"><div class="n">${l90.length ? pct(hr, l90.length) + '%' : '—'}</div><div class="l">Hold / reject rate</div><div class="s">${hr} of ${l90.length} loads, last 90 days</div></div>
+  </div>
+  <section class="panel"><div class="ph"><div><h2>Receiving log</h2><p>${loads.length} shown</p></div>
+    <div class="seg" role="group" aria-label="Filter loads">${[['all','All'],['pending','Pending'],['flag','Flagged']].map(([k, n]) => `<button class="${UI.loadFilter === k ? 'on' : ''}" data-act="load-filter" data-f="${k}">${n}</button>`).join('')}</div></div>
+    ${loads.length ? `<div class="list">${loads.map(loadRow).join('')}</div>` : '<div class="empty">No loads match.</div>'}
+  </section>
+  <div class="cols">
+  <section class="panel"><div class="ph"><div><h2>Supplier view</h2><p>Loads per supplier and hold / rejection rate — feeds supplier trending.</p></div></div>${supplierTable(S.loads)}</section>
+  <section class="panel"><div class="ph"><div><h2>Materials & specs</h2><p>Internal specification each COA is checked against.</p></div></div>
+    <div class="list">${S.materials.map(m => `<div class="rec"><div class="main"><div class="t">${esc(m.name)} ${pill(m.category)}${SB(m)}</div><div class="m">${m.tests.map(t => `${esc(t.name)}: ${esc(specText(t))}`).join(' · ') || 'No COA parameters'}</div></div><div class="acts"><button class="btn sm" data-act="open" data-kind="material" data-id="${m.id}">Edit spec</button></div></div>`).join('') || '<div class="empty">No materials.</div>'}</div>
+  </section></div>`;
+};
+function supplierStats(loads) {
+  const m = {};
+  loads.forEach(l => { const s = m[l.supplier] = m[l.supplier] || { supplier:l.supplier, loads:0, accept:0, hold:0, reject:0, pending:0, coaOos:0 };
+    s.loads++; s[l.decision.toLowerCase()]++; if (loadEval(l).coaOos.length) s.coaOos++; });
+  return Object.values(m).sort((a, b) => (b.hold + b.reject) / b.loads - (a.hold + a.reject) / a.loads || b.loads - a.loads);
+}
+function supplierTable(loads) {
+  const rows = supplierStats(loads);
+  return rows.length ? `<div class="tw"><table class="tbl"><thead><tr><th>Supplier</th><th class="num">Loads</th><th class="num">Accepted</th><th class="num">Held</th><th class="num">Rejected</th><th class="num">COA OOS</th><th class="num">Hold/Reject rate</th></tr></thead><tbody>
+    ${rows.map(r => { const rate = pct(r.hold + r.reject, r.loads - r.pending); return `<tr><td><b>${esc(r.supplier)}</b></td><td class="num">${r.loads}</td><td class="num">${r.accept}</td><td class="num">${r.hold}</td><td class="num">${r.reject}</td><td class="num">${r.coaOos}</td><td class="num">${r.loads - r.pending ? (rate ? `<span style="color:var(--crit-ink);font-weight:700">${rate}%</span>` : '0%') : '—'}</td></tr>`; }).join('')}</tbody></table></div>` : '<div class="empty">No loads yet.</div>';
+}
+function loadRow(l) {
+  const ev = loadEval(l); const c = l.caseId && caseById(l.caseId);
+  const flags = [];
+  if (!l.coaReceived) flags.push(pill('COA not received', 'warn', '!'));
+  if (ev.coaOos.length) flags.push(pill('COA out of spec: ' + ev.coaOos.map(r => r.t.name).join(', '), 'crit', '✕'));
+  if (ev.intOos.length) flags.push(pill('Internal test OOS', 'crit', '✕'));
+  const tone = l.decision === 'Hold' || l.decision === 'Reject' ? 'flag-crit' : l.decision === 'Accept' ? 'flag-good' : (flags.length ? 'flag-warn' : '');
+  return `<div class="rec ${tone}"><div class="main"><div class="t">${esc(ev.m?.name || 'Unknown material')} ${st(l.decision)}${SB(l)}</div>
+    <div class="m">${esc(l.supplier)} · supplier lot ${esc(l.supplierLot)} · received ${fmtD(l.received)}${l.reason ? ' · ' + esc(l.reason) : ''}</div>
+    <div class="chips" style="margin-top:4px">${flags.join('')}${ev.coa.filter(r => r.st !== 'missing').map(r => `<span class="chip ${r.st === 'oos' ? 'oos' : ''}">COA ${esc(r.t.name)} ${fmtNum(r.v, r.t.dp)}${r.t.unit ? ' ' + esc(r.t.unit) : ''}${r.st === 'oos' ? ' ✕' : ' ✓'}</span>`).join('')}</div></div>
+    <div class="acts">${c ? `<button class="btn sm" data-act="open" data-kind="case" data-id="${c.id}">${esc(c.num)} ↗</button>` : (l.decision === 'Hold' || ev.coaOos.length ? `<button class="btn sm warn" data-act="case-from" data-kind="load" data-id="${l.id}">Open CAPA case</button>` : '')}
+    <button class="btn sm ${l.decision === 'Pending' ? 'primary' : ''}" data-act="open" data-kind="load" data-id="${l.id}">${l.decision === 'Pending' ? 'Verify & decide' : 'Open'}</button></div></div>`;
+}
+A['load-filter'] = d => { UI.loadFilter = d.f; render(); };
+
+function loadEditor(load, isNew) {
+  openModal({ title: isNew ? 'Receive incoming load' : `Load ${esc(load.supplierLot)}`, draft: clone(load),
+    body: d => {
+      const ev = loadEval(d); const g = acceptGate(d);
+      return `<div class="form two">
+        ${F.text('Supplier', 'supplier', d, { list:'dl-sup' })}
+        ${F.sel('Material / ingredient / packaging', 'materialId', d, [['', '— choose —'], ...S.materials.map(m => [m.id, m.name])], { rr:true })}
+        ${F.text('Supplier lot', 'supplierLot', d)}${F.date('Date received', 'received', d)}
+        ${F.chk('COA received with load', 'coaReceived', d, { rr:true, full:true })}
+      </div>
+      <div class="sec"><h3>COA values vs internal spec</h3>
+      ${ev.m ? (ev.m.tests.length ? `<div class="trow lab" style="border:0;padding-bottom:0"><span class="tiny muted">Parameter · spec</span><span class="tiny muted">COA value</span><span class="tiny muted">Internal test (optional)</span><span></span></div>
+        ${ev.m.tests.map(t => { const s1 = checkVal(t, (d.coa || {})[t.key]); const s2 = checkVal(t, (d.internal || {})[t.key]); const s = s1 === 'oos' || s2 === 'oos' ? 'oos' : s1;
+          return `<div class="trow lab"><div><div class="tn">${esc(t.name)}</div><div class="ts">${esc(specText(t))}</div></div>
+          <input type="text" inputmode="decimal" data-b="coa.${t.key}" value="${esc((d.coa || {})[t.key] ?? '')}" data-live ${d.coaReceived ? '' : 'disabled'} aria-label="${esc(t.name)} COA">
+          <input type="text" inputmode="decimal" data-b="internal.${t.key}" value="${esc((d.internal || {})[t.key] ?? '')}" data-live aria-label="${esc(t.name)} internal">
+          <span class="ti ${s}">${s === 'ok' ? '✓' : s === 'oos' ? '✕' : '–'}</span></div>`; }).join('')}` : '<div class="tiny muted">No COA parameters on this material’s spec.</div>') : '<div class="empty">Choose a material to load its specification.</div>'}
+      ${!d.coaReceived ? '<div class="gate no" style="margin-top:10px"><h4>! COA not received</h4><ul><li class="n"><span class="i">!</span><span>The load can be held or rejected, but not accepted, until the COA is verified.</span></li></ul></div>' : ''}
+      ${ev.coaOos.length || ev.intOos.length ? `<div class="err" style="margin-top:10px"><b>Flag — outside specification:</b> ${[...ev.coaOos.map(r => 'COA ' + r.t.name), ...ev.intOos.map(r => 'internal ' + r.t.name)].map(esc).join(', ')}. Accept is blocked; place on Hold or Reject.</div>` : ''}
+      </div>
+      <div class="sec"><h3>Disposition</h3><div class="form two">
+        ${F.sel('Decision', 'decision', d, DECISIONS, { rr:true })}${F.text('Decided by', 'decidedBy', d, { list:'dl-people' })}
+        ${F.area('Reason', 'reason', d, { ph: d.decision === 'Accept' ? 'e.g. COA verified in spec' : 'Required for Hold / Reject' })}</div>
+        ${d.decision === 'Accept' ? gateBox('Accept is blocked', g, 'Accept allowed — COA verified in spec') : ''}
+      </div>${datalist('dl-sup', S.loads.map(l => l.supplier))}${datalist('dl-people', people())}`;
+    },
+    extra: d => `${!isNew && !d.caseId && (d.decision === 'Hold' || loadEval(d).coaOos.length) ? `<button class="btn warn" data-act="case-from" data-kind="load" data-id="${d.id}">Open CAPA case</button>` : ''}${isNew ? '' : `<button class="btn danger" data-act="del" data-kind="load" data-id="${d.id}">Delete</button>`}`,
+    onSave: d => commitLoad(d, isNew),
+  });
+}
+function commitLoad(d, isNew) {
+  const errs = [];
+  if (!d.supplier) errs.push('Enter the supplier.');
+  if (!materialById(d.materialId)) errs.push('Choose a material.');
+  if (!d.supplierLot) errs.push('Enter the supplier lot.');
+  if (!validDate(d.received)) errs.push('Enter the date received.');
+  if (d.decision === 'Accept') { const g = acceptGate(d); if (!gateOk(g)) { M.error = { title:'Accept blocked — COA not verified in spec', items: [...errs, ...g.filter(x => !x.ok).map(x => x.txt)] }; return false; } }
+  if ((d.decision === 'Hold' || d.decision === 'Reject') && !d.reason) errs.push(`Give a reason for the ${d.decision} decision.`);
+  if (d.decision !== 'Pending' && !d.decidedBy) d.decidedBy = S.user;
+  if (errs.length) { M.error = { title:'Can’t save yet', items: errs }; return false; }
+  const m = materialById(d.materialId);
+  upsert('loads', d);
+  if (d.decision === 'Hold' && !openHoldFor('load', d.id)) {
+    S.holds.push({ id: uid('h'), num: nextHoldNum(), itemType:'Incoming load', ref: `${d.supplierLot} · ${m.name}`, link:{ kind:'load', id:d.id }, reason: d.reason, placed: today(), placedBy: d.decidedBy, status:'On Hold', disposition:'', dispDate:'', caseId: d.caseId || '' });
+    log('capa', `Hold placed on incoming load ${d.supplierLot} (${d.supplier})`);
+  }
+  if (d.decision === 'Reject') { const h = openHoldFor('load', d.id); if (h) { h.status = 'Returned to Supplier'; h.disposition = 'Load rejected at receiving: ' + d.reason; h.dispDate = today(); } }
+  log('incoming', `Load ${d.supplierLot} ${m.name} from ${d.supplier} — ${d.decision}${d.reason ? ': ' + d.reason : ''}`);
+  if (d.decision === 'Hold' && !d.caseId) setTimeout(() => toast(`Load ${d.supplierLot} placed on Hold.`, 'crit', { label:'Open CAPA case', fn: () => caseFrom('load', d.id) }), 50);
+  return true;
+}
+A['new-load'] = () => loadEditor({ id: uid('ld'), supplier:'', materialId: S.materials[0]?.id || '', supplierLot:'', received: today(), coaReceived:false, coa:{}, internal:{}, decision:'Pending', reason:'', decidedBy:'', caseId:'', notes:'' }, true);
+
+/* ============================================================
+   MODULE 4 — HOLDS, DEVIATIONS & CAPA
+   ============================================================ */
+VIEWS.capa = () => {
+  const openH = S.holds.filter(isOpenHold); const openC = S.cases.filter(c => c.status !== 'Closed');
+  const od = overdueActions().filter(x => x.src === 'capa');
+  let holds = S.holds.slice().sort((a, b) => isOpenHold(b) - isOpenHold(a) || b.placed.localeCompare(a.placed));
+  if (UI.holdFilter === 'open') holds = holds.filter(isOpenHold);
+  let cases = S.cases.slice().sort((a, b) => (a.status === 'Closed') - (b.status === 'Closed') || SEVERITIES.indexOf(a.severity) - SEVERITIES.indexOf(b.severity) || b.opened.localeCompare(a.opened));
+  if (UI.caseFilter === 'open') cases = cases.filter(c => c.status !== 'Closed');
+  return `<div class="pagehead"><div><h1 style="font-size:21px">Holds, Deviations & CAPA</h1><p>Deviation → Containment → Root cause → Corrective + Preventive actions → Effectiveness check → Closure.</p></div>
+    <div class="btns"><button class="btn primary" data-act="new-case">+ Deviation / CAPA case</button><button class="btn" data-act="new-hold">+ Hold</button><button class="btn" data-act="csv" data-mod="capa">Export cases CSV</button><button class="btn" data-act="csv-holds">Export holds CSV</button></div></div>
+  <div class="stats">
+    <div class="stat t-${openH.length ? 'crit' : 'good'}"><div class="n">${openH.length}</div><div class="l">Open holds</div><div class="s">${openH.length ? 'avg ' + Math.round(openH.reduce((n, h) => n + holdAging(h), 0) / openH.length) + ' days on hold' : 'none'}</div></div>
+    <div class="stat t-${openC.length ? 'warn' : 'good'}"><div class="n">${openC.length}</div><div class="l">Open CAPA cases</div><div class="s">${openC.filter(c => c.severity === 'High').length} high severity</div></div>
+    <div class="stat t-${od.length ? 'crit' : 'good'}"><div class="n">${od.length}</div><div class="l">Overdue CAPA actions</div><div class="s">${openC.reduce((n, c) => n + [...c.corrective, ...c.preventive].filter(a => !a.done).length, 0)} open actions total</div></div>
+    <div class="stat t-good"><div class="n">${S.cases.filter(c => c.status === 'Closed' && inLast(c.closedDate, 90)).length}</div><div class="l">Closed, last 90 days</div><div class="s">all with passing effectiveness check</div></div>
+  </div>
+  <section class="panel"><div class="ph"><div><h2>Hold log</h2><p>Aging counts days on hold; disposition closes the hold.</p></div>
+    <div class="seg" role="group" aria-label="Filter holds">${[['open','Open'],['all','All']].map(([k, n]) => `<button class="${UI.holdFilter === k ? 'on' : ''}" data-act="hold-filter" data-f="${k}">${n}</button>`).join('')}</div></div>
+    ${holds.length ? `<div class="list">${holds.map(holdRow).join('')}</div>` : '<div class="empty">No holds match.</div>'}
+  </section>
+  <section class="panel"><div class="ph"><div><h2>CAPA cases</h2><p>Closure requires a passing effectiveness check — enforced on save.</p></div>
+    <div class="seg" role="group" aria-label="Filter cases">${[['open','Open'],['all','All']].map(([k, n]) => `<button class="${UI.caseFilter === k ? 'on' : ''}" data-act="case-filter" data-f="${k}">${n}</button>`).join('')}</div></div>
+    ${cases.length ? `<div class="list">${cases.map(caseRow).join('')}</div>` : '<div class="empty">No cases match.</div>'}
+  </section>`;
+};
+const STEP_NAMES = ['Deviation','Containment','Root cause','Actions','Effectiveness','Closed'];
+function stepper(c) { const s = caseStep(c); const cur = s.indexOf(false); return `<div class="steps" aria-label="Case progress">${STEP_NAMES.map((n, i) => `<span class="${s[i] ? 'done' : i === cur ? 'cur' : ''}">${s[i] ? '✓ ' : ''}${n}</span>`).join('')}</div>`; }
+function caseRow(c) {
+  const acts = [...c.corrective, ...c.preventive]; const od = acts.filter(actionOverdue).length;
+  return `<div class="rec ${c.status === 'Closed' ? 'flag-good' : od ? 'flag-crit' : 'flag-warn'}"><div class="main"><div class="t">${esc(c.num)} ${st(c.severity)} ${st(c.status)}${SB(c)}</div>
+    <div class="m" style="color:var(--text);font-weight:600">${esc(c.title)}</div>
+    <div class="m">Owner ${esc(c.owner || '—')} · opened ${fmtD(c.opened)} · source: ${esc(linkLabel(c.source))} · actions ${acts.filter(a => a.done).length}/${acts.length} done${od ? ` · <b style="color:var(--crit-ink)">${od} overdue</b>` : ''}${c.status === 'Closed' ? ' · closed ' + fmtD(c.closedDate) : ''}</div>
+    ${stepper(c)}</div><div class="acts"><button class="btn sm" data-act="open" data-kind="case" data-id="${c.id}">Open</button></div></div>`;
+}
+function holdRow(h) {
+  const c = h.caseId && caseById(h.caseId);
+  return `<div class="rec ${isOpenHold(h) ? 'flag-crit' : ''}"><div class="main"><div class="t">${esc(h.num)} ${st(h.status)} ${isOpenHold(h) ? pill(plural(holdAging(h), 'day'), holdAging(h) > 7 ? 'crit' : 'warn', '⏱') : ''}${SB(h)}</div>
+    <div class="m" style="color:var(--text);font-weight:600">${esc(h.itemType)}: ${esc(h.ref)}</div>
+    <div class="m">${esc(h.reason)} · placed ${fmtD(h.placed)} by ${esc(h.placedBy)}${!isOpenHold(h) ? ` · ${esc(h.disposition)} (${fmtD(h.dispDate)}, ${plural(holdAging(h), 'day')})` : ''}</div></div>
+    <div class="acts">${h.link && h.link.id ? linkBtn(h.link) : ''}${c ? `<button class="btn sm" data-act="open" data-kind="case" data-id="${c.id}">${esc(c.num)} ↗</button>` : isOpenHold(h) ? `<button class="btn sm warn" data-act="case-from" data-kind="hold" data-id="${h.id}">Open CAPA case</button>` : ''}
+    <button class="btn sm ${isOpenHold(h) ? 'primary' : ''}" data-act="open" data-kind="hold" data-id="${h.id}">${isOpenHold(h) ? 'Disposition' : 'Open'}</button></div></div>`;
+}
+A['hold-filter'] = d => { UI.holdFilter = d.f; render(); };
+A['case-filter'] = d => { UI.caseFilter = d.f; render(); };
+
+function holdEditor(h, isNew) {
+  const wasOpen = isOpenHold(h);
+  openModal({ title: isNew ? 'Place item on hold' : `Hold ${esc(h.num)}`, draft: clone(h),
+    body: d => `<div class="form two">
+      ${F.sel('Item type', 'itemType', d, ['Finished lot','Incoming load','WIP / in-process','Equipment','Other'])}
+      ${F.text('Item / lot reference', 'ref', d)}
+      ${F.area('Reason for hold', 'reason', d)}
+      ${F.date('Date placed', 'placed', d)}${F.text('Placed by', 'placedBy', d, { list:'dl-people' })}
+      ${d.link && d.link.id ? `<div class="fld full"><span>Linked record</span>${linkBtn(d.link)}</div>` : ''}
+      </div>
+      <div class="sec"><h3>Disposition</h3><div class="form two">
+      ${F.sel('Status', 'status', d, HOLD_STATUSES, { rr:true, hint: isOpenHold(d) ? `On hold ${plural(holdAging(d), 'day')}` : '' })}
+      ${F.date('Disposition date', 'dispDate', d)}
+      ${F.area('Disposition notes / justification', 'disposition', d, { ph:'e.g. retest in spec on outside lab; released by QA Manager' })}
+      </div>${d.link && d.link.kind === 'lot' && d.status === 'Released' ? '<div class="tiny muted" style="margin-top:6px">Releasing the hold does not release the lot — the lot still has to pass its release gate in Product & Release.</div>' : ''}
+      ${d.link && d.link.kind === 'lot' && d.status === 'Destroyed' ? '<div class="tiny muted" style="margin-top:6px">The linked lot will be set to Rejected.</div>' : ''}</div>${datalist('dl-people', people())}`,
+    extra: d => `${!d.caseId && !isNew ? `<button class="btn warn" data-act="case-from" data-kind="hold" data-id="${d.id}">Open CAPA case</button>` : ''}${isNew ? '' : `<button class="btn danger" data-act="del" data-kind="hold" data-id="${d.id}">Delete</button>`}`,
+    onSave: d => {
+      const errs = [];
+      if (!d.ref) errs.push('Enter the item / lot reference.');
+      if (!d.reason) errs.push('Enter the reason for the hold.');
+      if (!validDate(d.placed)) errs.push('Enter the date placed.');
+      if (!isOpenHold(d)) { if (!d.disposition) errs.push('Record disposition notes / justification.'); if (!validDate(d.dispDate)) d.dispDate = today(); }
+      if (errs.length) { M.error = { title:'Can’t save yet', items: errs }; return false; }
+      if (isNew) d.num = nextHoldNum();
+      upsert('holds', d);
+      if (wasOpen && !isOpenHold(d) && d.link) {
+        if (d.link.kind === 'lot' && d.status === 'Destroyed') { const l = lotById(d.link.id); if (l) l.status = 'Rejected'; }
+        if (d.link.kind === 'load' && d.status === 'Returned to Supplier') { const l = loadById(d.link.id); if (l) l.decision = 'Reject'; }
+      }
+      log('capa', `${d.num} ${isNew ? 'placed' : wasOpen && !isOpenHold(d) ? 'dispositioned — ' + d.status : 'updated'}: ${d.ref}`);
+      return true;
+    } });
+}
+A['new-hold'] = () => holdEditor({ id: uid('h'), num:'', itemType:'Finished lot', ref:'', link:null, reason:'', placed: today(), placedBy: S.user, status:'On Hold', disposition:'', dispDate:'', caseId:'' }, true);
+
+function blankCase() {
+  return { id: uid('case'), num:'', title:'', severity:'Medium', status:'Investigating', opened: today(), owner: S.user, source:{ kind:'manual', id:'', label:'Manual entry' },
+    deviation:'', containment:'', containDate:'', rca:{ whys:['','','','',''], cats:[], rootCause:'' }, corrective:[], preventive:[],
+    effectiveness:{ metric:'', date:'', result:'', notes:'' }, closedDate:'' };
+}
+function caseEditor(c, isNew) {
+  openModal({ title: isNew ? 'New deviation / CAPA case' : `${esc(c.num)}`, draft: clone(c),
+    body: d => {
+      const g = closureGate(d);
+      return `${stepper(d)}
+      <div class="form two" style="margin-top:12px">${F.text('Title', 'title', d, { full:true })}
+        ${F.sel('Severity', 'severity', d, SEVERITIES)}${F.sel('Status', 'status', d, CASE_STATUSES, { rr:true, hint:'<b>Closed</b> is accepted only after a <b>Pass</b> effectiveness check.' })}
+        ${F.text('Owner', 'owner', d, { list:'dl-people' })}${F.date('Opened', 'opened', d)}
+        ${d.source && d.source.kind !== 'manual' ? `<div class="fld full"><span>Source</span>${d.source.id ? linkBtn(d.source) : esc(linkLabel(d.source))}</div>` : ''}
+        ${S.holds.filter(h => h.caseId === d.id).length ? `<div class="fld full"><span>Linked holds</span><div class="btns">${S.holds.filter(h => h.caseId === d.id).map(h => `<button class="btn sm ghost" data-act="open" data-kind="hold" data-id="${h.id}">${esc(h.num)} · ${esc(h.status)} ↗</button>`).join('')}</div></div>` : ''}
+      </div>
+      <div class="sec"><h3>1 · Deviation</h3>${F.area('What happened — what, where, when, how detected', 'deviation', d, { rows:3 })}</div>
+      <div class="sec"><h3>2 · Containment</h3><div class="form two">${F.area('Immediate containment (product, area, holds)', 'containment', d, { rows:3 })}${F.date('Containment date', 'containDate', d)}</div></div>
+      <div class="sec"><h3>3 · Root cause analysis</h3>
+        <div class="whys">${d.rca.whys.map((w, i) => `<div class="why"><b>Why ${i + 1}</b><input type="text" data-b="rca.whys.${i}" value="${esc(w)}" aria-label="Why ${i + 1}"></div>`).join('')}</div>
+        <div class="fld" style="margin-top:8px"><span>Fishbone categories (contributing)</span><div class="fish">${FISHBONE.map(f => `<label class="${d.rca.cats.includes(f) ? 'on' : ''}"><input type="checkbox" data-act="fish" data-f="${f}" ${d.rca.cats.includes(f) ? 'checked' : ''}> ${f}</label>`).join('')}</div></div>
+        <div style="margin-top:8px">${F.area('Root-cause statement', 'rca.rootCause', d, { rows:2, ph:'One sentence: the cause that, if removed, prevents recurrence' })}</div>
+      </div>
+      <div class="sec"><h3>4a · Corrective actions <span class="tiny muted" style="font-weight:400">fix this occurrence</span></h3>${actionList(d, 'corrective')}</div>
+      <div class="sec"><h3>4b · Preventive actions <span class="tiny muted" style="font-weight:400">stop recurrence elsewhere</span></h3>${actionList(d, 'preventive')}</div>
+      <div class="sec"><h3>5 · Effectiveness check</h3><div class="form two">
+        ${F.text('Metric / evidence of effectiveness', 'effectiveness.metric', d, { full:true, ph:'e.g. 3 consecutive negative swabs at site and vectors', rr:true })}
+        ${F.date('Check date', 'effectiveness.date', d, { rr:true })}${F.sel('Result', 'effectiveness.result', d, [['', 'Not yet checked'], 'Pass', 'Fail'], { rr:true })}
+        ${F.area('Notes / data reviewed', 'effectiveness.notes', d)}</div></div>
+      <div class="sec"><h3>6 · Closure</h3>${gateBox('Closure gate — case cannot be closed yet', g, 'Closure gate passed — case can be saved as Closed')}</div>
+      ${datalist('dl-people', people())}`;
+    },
+    extra: d => isNew ? '' : `<button class="btn danger" data-act="del" data-kind="case" data-id="${d.id}">Delete</button>`,
+    onSave: d => commitCase(d, isNew),
+  });
+}
+A['fish'] = (ds, el) => { const cats = M.draft.rca.cats; const f = ds.f; const i = cats.indexOf(f); if (i >= 0) cats.splice(i, 1); else cats.push(f); drawModal(); };
+
+/* Closure gate — enforced at the data layer. */
+function commitCase(d, isNew) {
+  const errs = [];
+  if (!d.title) errs.push('Enter a title.');
+  if (!validDate(d.opened)) errs.push('Enter the date opened.');
+  if (errs.length) { M.error = { title:'Can’t save yet', items: errs }; return false; }
+  d.corrective = d.corrective.filter(a => a.desc); d.preventive = d.preventive.filter(a => a.desc);
+  const prev = caseById(d.id);
+  if (d.status === 'Closed') {
+    const g = closureGate(d);
+    if (!gateOk(g)) { M.error = { title:'Closure blocked — the closure gate is not met', items: g.filter(x => !x.ok).map(x => x.txt) }; return false; }
+    if (!d.closedDate) d.closedDate = today();
+  } else d.closedDate = '';
+  if (isNew || !d.num) d.num = nextCaseNum();
+  upsert('cases', d);
+  log('capa', `${d.num} ${isNew ? 'opened' : (d.status !== prev?.status ? 'moved to ' + d.status : 'updated')}: ${d.title}`);
+  return true;
+}
+A['new-case'] = () => caseEditor(blankCase(), true);
+
+/* Cross-module case creation — one tap, pre-filled from the source record. */
+function caseFrom(kind, id) {
+  const c = blankCase();
+  let holdIds = [];
+  if (kind === 'swab') {
+    const s = swabById(id); if (!s) return; if (s.caseId && caseById(s.caseId)) return openRecord('case', s.caseId);
+    const site = siteById(s.siteId); const rep = siteFails(s.siteId, s.date).length;
+    c.title = `${rep >= 2 ? 'Repeat ' : ''}Zone ${site.zone} ${s.type} ${isPathogen(s.type) ? 'positive' : 'failure'} — ${site.name}`;
+    c.severity = Number(site.zone) <= 2 && isPathogen(s.type) ? 'High' : Number(site.zone) === 1 ? 'High' : 'Medium';
+    c.source = { kind:'swab', id }; c.rca.cats = ['Environment'];
+    c.deviation = `${s.type} swab at ${site.name} (Zone ${site.zone}, ${site.area}) on ${fmtD(s.date)} returned ${swabResultLabel(s)}. Analyst: ${s.analyst || '—'}.${rep >= 2 ? ` ${rep} positives at this site within ${REPEAT_WINDOW} days.` : ''}${s.notes ? ' Notes: ' + s.notes : ''}`;
+    c.containment = Number(site.zone) === 1 ? 'Re-clean and re-swab before production; evaluate product made since last passing swab for hold.' : 'Intensified sanitation of the site; vector swabbing of surrounding sites.';
+    s.caseId = c.id;
+  } else if (kind === 'lot') {
+    const l = lotById(id); if (!l) return; if (l.caseId && caseById(l.caseId)) return openRecord('case', l.caseId);
+    const ev = lotEval(l);
+    c.title = `Out-of-spec finished product — ${ev.p?.name || ''} lot ${l.code}`;
+    c.severity = 'Medium'; c.source = { kind:'lot', id }; c.rca.cats = ev.oos.some(r => r.t.type === 'pf') ? ['Material'] : ['Method'];
+    c.deviation = `Lot ${l.code} (${ev.p?.name}, produced ${fmtD(l.date)}) failed: ${ev.oos.map(r => `${r.t.name} ${r.t.type === 'pf' ? r.v : fmtNum(r.v, r.t.dp) + (r.t.unit ? ' ' + r.t.unit : '')} vs spec ${specText(r.t)}`).join('; ') || 'see lot record'}.`;
+    const h = openHoldFor('lot', id); if (h) holdIds.push(h.id);
+    c.containment = `Lot placed On Hold${h ? ' (' + h.num + ')' : ''}; not released. Check adjacent lots from the same batch / line.`;
+    l.caseId = c.id;
+  } else if (kind === 'load') {
+    const l = loadById(id); if (!l) return; if (l.caseId && caseById(l.caseId)) return openRecord('case', l.caseId);
+    const ev = loadEval(l);
+    c.title = `Supplier COA not matching specification — ${ev.m?.name || ''} (${l.supplier})`;
+    c.severity = 'Medium'; c.source = { kind:'load', id }; c.rca.cats = ['Material'];
+    c.deviation = `${l.supplier} load, supplier lot ${l.supplierLot}, received ${fmtD(l.received)}: ${ev.coaOos.length ? ev.coaOos.map(r => `COA ${r.t.name} ${fmtNum(r.v, r.t.dp)} vs spec ${specText(r.t)}`).join('; ') : (l.reason || 'held at receiving')}.`;
+    const h = openHoldFor('load', id); if (h) holdIds.push(h.id);
+    c.containment = `Load held at receiving${h ? ' (' + h.num + ')' : ''}, segregated and tagged; not released to production. Supplier notified.`;
+    c.corrective = [{ id: uid('a'), desc:`Request supplier corrective action report (SCAR) from ${l.supplier}`, owner: S.user, due: addDays(today(), 7), done:false }];
+    l.caseId = c.id;
+  } else if (kind === 'hold') {
+    const h = holdById(id); if (!h) return; if (h.caseId && caseById(h.caseId)) return openRecord('case', h.caseId);
+    if (h.link && ['lot','load'].includes(h.link.kind) && !(h.link.kind === 'lot' ? lotById(h.link.id)?.caseId : loadById(h.link.id)?.caseId)) return caseFrom(h.link.kind, h.link.id);
+    c.title = `Deviation — ${h.itemType} ${h.ref} on hold`; c.source = h.link && h.link.id ? h.link : { kind:'manual', id:'', label:`Hold ${h.num}` };
+    c.deviation = `${h.itemType} ${h.ref} placed on hold ${fmtD(h.placed)} by ${h.placedBy}: ${h.reason}.`;
+    c.containment = `Item on hold (${h.num}).`; holdIds.push(h.id);
+  } else if (kind === 'inv') {
+    const i = S.emInv.find(x => x.id === id); if (!i) return; if (i.caseId && caseById(i.caseId)) return openRecord('case', i.caseId);
+    const site = siteById(i.siteId);
+    c.title = i.title; c.severity = site && Number(site.zone) <= 2 ? 'High' : 'Medium'; c.source = { kind:'inv', id }; c.rca.cats = ['Environment'];
+    c.deviation = `Escalated from EM investigation opened ${fmtD(i.opened)} at ${site?.name || ''} (Zone ${site?.zone || '?'}). ${i.notes || ''}`;
+    c.containment = 'See EM investigation corrective actions.';
+    c.corrective = i.actions.map(a => Object.assign({}, a, { id: uid('a') }));
+    i.caseId = c.id;
+  } else if (kind === 'trend') {
+    c.title = 'Trend finding — ' + (id || 'Trending Center'); c.source = { kind:'trend', id:'', label:'Trending Center' }; c.rca.cats = ['Measurement'];
+    c.deviation = 'Identified from the Trending Center: ' + (id || '');
+  }
+  c.num = nextCaseNum();
+  S.cases.push(c);
+  holdIds.forEach(hid => { const h = holdById(hid); if (h) h.caseId = c.id; });
+  log('capa', `${c.num} opened from ${linkLabel(c.source) || 'manual entry'}`);
+  save(); closeModal();
+  const show = () => { caseEditor(c, false); toast(`${c.num} created and pre-filled. Review and save.`); };
+  if (route() !== 'capa') { PENDING = show; location.hash = '#capa'; } else { render(); show(); }
+}
+A['case-from'] = d => caseFrom(d.kind, d.id);
+
+/* ---------- generic upsert / open / delete ---------- */
+function upsert(coll, rec) { const arr = S[coll]; const i = arr.findIndex(x => x.id === rec.id); if (i >= 0) arr[i] = rec; else arr.push(rec); }
+const KIND = {
+  swab:   { coll:'swabs', route:'em', edit: r => swabEditor(r) },
+  inv:    { coll:'emInv', route:'em', edit: r => invEditor(r) },
+  site:   { coll:'sites', route:'em', edit: r => siteEditor(r) },
+  lot:    { coll:'lots', route:'product', edit: r => lotEditor(r) },
+  product:{ coll:'products', route:'product', edit: r => specEditor('product', r) },
+  load:   { coll:'loads', route:'incoming', edit: r => loadEditor(r) },
+  material:{ coll:'materials', route:'incoming', edit: r => specEditor('material', r) },
+  hold:   { coll:'holds', route:'capa', edit: r => holdEditor(r) },
+  case:   { coll:'cases', route:'capa', edit: r => caseEditor(r) },
+  comp:   { coll:'compliance', route:'compliance', edit: r => compEditor(r) },
+};
+function openRecord(kind, id) {
+  const k = KIND[kind]; if (!k) return; const r = S[k.coll].find(x => x.id === id);
+  if (!r) { toast('That record no longer exists.', 'crit'); return; }
+  closeModal(); $('#qres').hidden = true;
+  if (route() !== k.route) { PENDING = () => k.edit(r); location.hash = '#' + k.route; } else k.edit(r);
+}
+A['open'] = d => openRecord(d.kind, d.id);
+A['del'] = d => {
+  const k = KIND[d.kind]; if (!k) return;
+  const inUse = (d.kind === 'site' && S.swabs.some(s => s.siteId === d.id)) || (d.kind === 'product' && S.lots.some(l => l.productId === d.id)) || (d.kind === 'material' && S.loads.some(l => l.materialId === d.id));
+  if (inUse) { toast('This record is referenced by other records and can’t be deleted.', 'crit'); return; }
+  if (!confirm('Delete this record permanently? This cannot be undone.')) return;
+  S[k.coll] = S[k.coll].filter(x => x.id !== d.id);
+  if (d.kind === 'case') ['swabs','lots','loads','holds','emInv'].forEach(cl => S[cl].forEach(x => { if (x.caseId === d.id) x.caseId = ''; }));
+  log(k.route, `Deleted ${d.kind} record`); save(); closeModal(); render();
+};
+
+/* ============================================================
+   CHARTS — hand-built SVG, single y-axis, hover tooltips
+   ============================================================ */
+const CH = {};   // chart id -> (width) => svg html
+function chart(id, fn) { CH[id] = fn; return `<div class="chart" data-chart="${id}"></div>`; }
+function drawCharts() { $$('.chart[data-chart]').forEach(el => { const f = CH[el.dataset.chart]; if (f) el.innerHTML = f(Math.max(280, el.clientWidth || 600)); }); }
+let rzT; window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(drawCharts, 150); });
+function niceScale(min, max, n = 5) {
+  if (!isFinite(min) || !isFinite(max)) { min = 0; max = 1; }
+  if (min === max) { const p = Math.abs(min) * 0.05 || 1; min -= p; max += p; }
+  const step0 = (max - min) / n, mag = Math.pow(10, Math.floor(Math.log10(step0))), f = step0 / mag;
+  const step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag;
+  const lo = Math.floor(min / step + 1e-9) * step, hi = Math.ceil(max / step - 1e-9) * step;
+  const ticks = []; for (let v = lo; v <= hi + step / 2; v += step) ticks.push(+v.toFixed(10));
+  return { lo, hi, ticks, dp: Math.max(0, -Math.floor(Math.log10(step) + 1e-9)) };
+}
+const SVGT = (x, y, txt, o = '') => `<text x="${x}" y="${y}" style="fill:var(--text-2);font-size:11px" ${o}>${esc(txt)}</text>`;
+function lineChart(o, W) {
+  const all = o.series.flatMap(s => s.points);
+  if (!all.length) return '<div class="empty">No data in this date range.</div>';
+  const H = Math.round(Math.max(210, Math.min(300, W * 0.48))); const m = { l: 56, r: 14, t: 14, b: 30 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const xs = all.map(p => parseD(p.x).getTime()); let x0 = Math.min(...xs), x1 = Math.max(...xs); if (x0 === x1) { x0 -= 864e5 * 3; x1 += 864e5 * 3; }
+  const ys = [...all.map(p => p.y), ...(o.limits || []).map(l => l.y)];
+  const sc = niceScale(Math.min(...ys), Math.max(...ys), 5); const dp = Math.max(sc.dp, o.dp || 0);
+  const X = t => m.l + (t - x0) / (x1 - x0) * iw, Y = v => m.t + ih - (v - sc.lo) / (sc.hi - sc.lo) * ih;
+  let g = '';
+  sc.ticks.forEach(t => { g += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(t)}" y2="${Y(t)}" style="stroke:var(--grid);stroke-width:1"/>` + SVGT(m.l - 6, Y(t) + 4, t.toFixed(dp), 'text-anchor="end"'); });
+  const nx = Math.max(2, Math.min(7, Math.floor(iw / 90)));
+  for (let i = 0; i < nx; i++) { const t = x0 + (x1 - x0) * i / (nx - 1); g += SVGT(X(t), H - 8, fmtDs(iso(new Date(t))), `text-anchor="${i === 0 ? 'start' : i === nx - 1 ? 'end' : 'middle'}"`); }
+  (o.limits || []).forEach(l => { g += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(l.y)}" y2="${Y(l.y)}" style="stroke:var(--muted);stroke-width:1.5;stroke-dasharray:5 4"/>` + SVGT(W - m.r - 2, Y(l.y) - 4, l.label, 'text-anchor="end"'); });
+  o.series.forEach(s => {
+    const pts = s.points.slice().sort((a, b) => a.x.localeCompare(b.x));
+    if (pts.length > 1) g += `<path d="${pts.map((p, i) => (i ? 'L' : 'M') + X(parseD(p.x).getTime()).toFixed(1) + ' ' + Y(p.y).toFixed(1)).join(' ')}" style="fill:none;stroke:${s.color};stroke-width:2;stroke-linejoin:round;stroke-linecap:round"/>`;
+    pts.forEach(p => { const cx = X(parseD(p.x).getTime()), cy = Y(p.y);
+      g += p.flag ? `<circle cx="${cx}" cy="${cy}" r="5.5" style="fill:var(--crit);stroke:var(--surface);stroke-width:2"/>` : `<circle cx="${cx}" cy="${cy}" r="4" style="fill:${s.color};stroke:var(--surface);stroke-width:2"/>`;
+      g += `<circle cx="${cx}" cy="${cy}" r="13" style="fill:transparent;cursor:default" data-tip="${esc(p.tip)}"/>`; });
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(o.title || 'Line chart')}">${g}</svg>`;
+}
+function barChart(o, W) {
+  if (!o.bars.length) return '<div class="empty">No data in this date range.</div>';
+  const H = Math.round(Math.max(200, Math.min(270, W * 0.42))); const m = { l: 40, r: 10, t: 12, b: 30 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const sc = niceScale(0, Math.max(1, ...o.bars.map(b => b.v)), 4);
+  const Y = v => m.t + ih - (v - sc.lo) / (sc.hi - sc.lo) * ih; const bw = iw / o.bars.length;
+  let g = '';
+  sc.ticks.forEach(t => { if (t % 1 === 0) g += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(t)}" y2="${Y(t)}" style="stroke:var(--grid)"/>` + SVGT(m.l - 6, Y(t) + 4, String(t), 'text-anchor="end"'); });
+  const every = Math.ceil(o.bars.length / Math.max(1, Math.floor(iw / 64)));
+  o.bars.forEach((b, i) => { const x = m.l + i * bw + 2, w = Math.max(2, bw - 4), y = Y(b.v), h = m.t + ih - y;
+    if (b.v > 0) g += `<path d="${roundTop(x, y, w, h, Math.min(4, w / 2))}" style="fill:${b.color || 'var(--s1)'}"/>`;
+    g += `<rect x="${m.l + i * bw}" y="${m.t}" width="${bw}" height="${ih}" style="fill:transparent" data-tip="${esc(b.tip)}"/>`;
+    if (i % every === 0) g += SVGT(m.l + i * bw + bw / 2, H - 8, b.label, 'text-anchor="middle"'); });
+  g += `<line x1="${m.l}" x2="${W - m.r}" y1="${m.t + ih}" y2="${m.t + ih}" style="stroke:var(--muted)"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(o.title || 'Bar chart')}">${g}</svg>`;
+}
+function roundTop(x, y, w, h, r) { if (h < r) r = h; return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`; }
+/* Pareto on ONE axis: bars = share of total (%), line = cumulative %. Counts in labels/tooltips. */
+function paretoChart(cats, W) {
+  const total = cats.reduce((n, c) => n + c.n, 0);
+  if (!total) return '<div class="empty">No events in this date range.</div>';
+  const narrow = W < 560;
+  const H = narrow ? 300 : 290; const m = { l: 42, r: 12, t: 16, b: narrow ? 92 : 64 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b; const Y = v => m.t + ih - v / 100 * ih; const bw = iw / cats.length;
+  let g = '', cum = 0, line = [];
+  [0, 20, 40, 60, 80, 100].forEach(t => { g += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(t)}" y2="${Y(t)}" style="stroke:var(--grid)"/>` + SVGT(m.l - 6, Y(t) + 4, t + '%', 'text-anchor="end"'); });
+  g += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(80)}" y2="${Y(80)}" style="stroke:var(--muted);stroke-width:1.5;stroke-dasharray:5 4"/>` + SVGT(W - m.r - 2, Y(80) - 4, '80% line', 'text-anchor="end"');
+  cats.forEach((c, i) => {
+    const share = c.n / total * 100; cum += share; const x = m.l + i * bw + 3, w = Math.max(3, bw - 6), y = Y(share);
+    const vital = cum - share < 80;
+    g += `<path d="${roundTop(x, y, w, m.t + ih - y, Math.min(4, w / 2))}" style="fill:var(--s1);opacity:${vital ? 1 : 0.45}"/>`;
+    const bh = m.t + ih - y;
+    if (bw >= 26) g += bh >= 20 ? `<text x="${x + w / 2}" y="${y + 15}" text-anchor="middle" style="fill:#fff;font-size:11px;font-weight:700">${c.n}</text>` : `<text x="${x + w / 2}" y="${y - 5}" text-anchor="middle" style="fill:var(--text);font-size:11px;font-weight:600">${c.n}</text>`;
+    line.push([m.l + i * bw + bw / 2, Y(cum), cum, c]);
+    const lx = m.l + i * bw + bw / 2, ly = m.t + ih + 12; const lab = c.name.length > 22 ? c.name.slice(0, 21) + '…' : c.name;
+    g += narrow || bw < 90 ? `<text x="${lx}" y="${ly}" text-anchor="end" transform="rotate(-38 ${lx} ${ly})" style="fill:var(--text-2);font-size:11px">${esc(lab)}</text>` : SVGT(lx, ly + 2, lab, 'text-anchor="middle"');
+  });
+  g += `<path d="${line.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ')}" style="fill:none;stroke:var(--s2);stroke-width:2"/>`;
+  line.forEach(([x, y, cu, c]) => { g += `<circle cx="${x}" cy="${y}" r="4" style="fill:var(--s2);stroke:var(--surface);stroke-width:2"/>`; });
+  cats.forEach((c, i) => { const cu = line[i][2]; g += `<rect x="${m.l + i * bw}" y="${m.t}" width="${bw}" height="${ih}" style="fill:transparent" data-tip="${esc(`${c.name}: ${c.n} of ${total} (${(c.n / total * 100).toFixed(1)}%) · cumulative ${cu.toFixed(1)}%${c.detail ? ' · ' + c.detail : ''}`)}"/>`; });
+  g += `<line x1="${m.l}" x2="${W - m.r}" y1="${m.t + ih}" y2="${m.t + ih}" style="stroke:var(--muted)"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Pareto chart">${g}</svg>`;
+}
+/* tooltip */
+(() => {
+  const tip = $('#tip');
+  const show = (el, x, y) => { tip.textContent = el.getAttribute('data-tip'); tip.style.display = 'block';
+    const r = tip.getBoundingClientRect(); let L = x + 14, T = y - r.height - 10; if (L + r.width > innerWidth - 8) L = x - r.width - 14; if (T < 8) T = y + 16; tip.style.left = Math.max(8, L) + 'px'; tip.style.top = T + 'px'; };
+  document.addEventListener('pointermove', e => { const el = e.target.closest && e.target.closest('[data-tip]'); if (el && el.getAttribute('data-tip')) show(el, e.clientX, e.clientY); else tip.style.display = 'none'; });
+  document.addEventListener('pointerdown', e => { const el = e.target.closest && e.target.closest('[data-tip]'); if (el) show(el, e.clientX, e.clientY); else tip.style.display = 'none'; });
+  document.addEventListener('scroll', () => { tip.style.display = 'none'; }, true);
+})();
+function dataTable(head, rows) { return `<details class="data"><summary>Data table (${rows.length} rows)</summary><div class="tw"><table class="tbl"><thead><tr>${head.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details>`; }
+
+/* ============================================================
+   TRENDING CENTER
+   ============================================================ */
+function rangeOf(cfg) {
+  if (cfg.range === 'custom' && validDate(cfg.from) && validDate(cfg.to)) return [cfg.from, cfg.to];
+  if (cfg.range === 'all') return ['1900-01-01', '2999-12-31'];
+  const n = Number(cfg.range) || 90; return [addDays(today(), -(n - 1)), today()];
+}
+function rangeControls(cfg, act) {
+  return `<div class="seg" role="group" aria-label="Date range">${[['30','30 days'],['90','90 days'],['180','180 days'],['all','All'],['custom','Custom']].map(([k, n]) => `<button class="${cfg.range === k ? 'on' : ''}" data-act="${act}" data-r="${k}">${n}</button>`).join('')}</div>
+    ${cfg.range === 'custom' ? `<label class="small">From <input type="date" id="${act}-from" value="${esc(cfg.from)}"></label><label class="small">To <input type="date" id="${act}-to" value="${esc(cfg.to)}"></label><button class="btn sm" data-act="${act}-apply">Apply</button>` : ''}`;
+}
+A['trend-range'] = d => { UI.trend.range = d.r; if (d.r === 'custom' && !UI.trend.from) { UI.trend.from = addDays(today(), -89); UI.trend.to = today(); } render(); };
+A['trend-range-apply'] = () => { UI.trend.from = $('#trend-range-from').value; UI.trend.to = $('#trend-range-to').value; render(); };
+A['audit-range'] = d => { UI.audit.range = d.r; if (d.r === 'custom' && !UI.audit.from) { UI.audit.from = addDays(today(), -29); UI.audit.to = today(); } render(); };
+A['audit-range-apply'] = () => { UI.audit.from = $('#audit-range-from').value; UI.audit.to = $('#audit-range-to').value; render(); };
+document.addEventListener('change', e => {
+  const el = e.target; if (!el.dataset || !el.dataset.ui) return;
+  setPath(UI, el.dataset.ui, el.value);
+  if (el.dataset.ui === 'trend.product') { const p = productById(el.value); UI.trend.test = p && p.tests.find(t => t.type === 'num') ? p.tests.find(t => t.type === 'num').key : ''; }
+  render();
+});
+function paretoData(kind, from, to) {
+  const m = {};
+  const add = (k, d) => { m[k] = m[k] || { name:k, n:0, items:[] }; m[k].n++; if (d) m[k].items.push(d); };
+  if (kind === 'rootcause') S.cases.filter(c => inRange(c.opened, from, to)).forEach(c => (c.rca.cats.length ? c.rca.cats : ['Not yet assigned']).forEach(f => add(f, c.num)));
+  else if (kind === 'source') S.cases.filter(c => inRange(c.opened, from, to)).forEach(c => add({ swab:'Environmental monitoring', inv:'Environmental monitoring', lot:'Finished product', load:'Incoming / supplier', trend:'Trending finding', manual:'Other / manual' }[c.source?.kind] || 'Other / manual', c.num));
+  else {
+    S.swabs.filter(s => s.result === 'Fail' && inRange(s.date, from, to)).forEach(s => add(isPathogen(s.type) ? `${s.type} positive` : 'ATP above limit', siteById(s.siteId)?.name));
+    S.lots.filter(l => inRange(l.date, from, to)).forEach(l => lotEval(l).oos.forEach(r => add(`${r.t.name.replace(/ \(.*\)/, '')} out of spec`, l.code)));
+    S.loads.filter(l => inRange(l.received, from, to)).forEach(l => { const ev = loadEval(l); if (ev.coaOos.length) add('COA out of spec', l.supplierLot); else if (ev.intOos.length) add('Incoming test out of spec', l.supplierLot); if (!l.coaReceived) add('COA not received', l.supplierLot); });
+  }
+  return Object.values(m).sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)).map(c => Object.assign(c, { detail: [...new Set(c.items)].slice(0, 4).join(', ') }));
+}
+function weekStart(s) { const d = parseD(s); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return iso(d); }
+function emWeekly(from, to) {
+  const sw = S.swabs.filter(s => inRange(s.date, from, to)); if (!sw.length) return [];
+  let w = weekStart(sw.reduce((a, s) => s.date < a ? s.date : a, sw[0].date)); const end = weekStart(sw.reduce((a, s) => s.date > a ? s.date : a, sw[0].date));
+  const out = [];
+  while (w <= end) { const ww = w; const inW = sw.filter(s => weekStart(s.date) === ww); const f = inW.filter(s => s.result === 'Fail');
+    out.push({ week: ww, total: inW.length, fails: f.length, atp: f.filter(s => s.type === 'ATP').length, path: f.filter(s => isPathogen(s.type)).length });
+    w = addDays(w, 7); }
+  return out;
+}
+function statsOf(vals, t) {
+  const n = vals.length; if (!n) return null;
+  const mean = vals.reduce((a, b) => a + b, 0) / n; const sd = n > 1 ? Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1)) : 0;
+  let ppk = null;
+  if (n >= 5 && sd > 0 && (isNum(t.min) || isNum(t.max))) ppk = Math.min(isNum(t.max) ? (Number(t.max) - mean) / (3 * sd) : Infinity, isNum(t.min) ? (mean - Number(t.min)) / (3 * sd) : Infinity);
+  return { n, mean, sd, min: Math.min(...vals), max: Math.max(...vals), ppk };
+}
+VIEWS.trending = () => {
+  const [from, to] = rangeOf(UI.trend); const T = UI.trend;
+  let p = productById(T.product) || S.products[0]; if (p) T.product = p.id;
+  let t = p && (p.tests.find(x => x.key === T.test && x.type === 'num') || p.tests.find(x => x.type === 'num')); if (t) T.test = t.key;
+  const lots = p && t ? productSeries(p.id, t.key, from, to) : [];
+  const vals = lots.map(l => Number(l.results[t.key])); const stt = t ? statsOf(vals, t) : null;
+  // lab comparison options
+  const labOpts = []; S.products.forEach(pp => pp.tests.filter(x => x.type === 'num').forEach(x => { if (S.lots.some(l => l.productId === pp.id && isNum((l.outside || {})[x.key]))) labOpts.push([pp.id + '|' + x.key, `${pp.name} — ${x.name}`]); }));
+  if (!labOpts.some(o => o[0] === T.lab) && labOpts.length) T.lab = labOpts[0][0];
+  const [lp, lk] = (T.lab || '|').split('|'); const lprod = productById(lp); const ltest = lprod && lprod.tests.find(x => x.key === lk);
+  const paired = lprod && ltest ? productSeries(lp, lk, from, to).filter(l => isNum((l.outside || {})[lk])) : [];
+  const diffs = paired.map(l => Number(l.results[lk]) - Number(l.outside[lk]));
+  const bias = diffs.length ? diffs.reduce((a, b) => a + b, 0) / diffs.length : 0;
+  const tol = ltest ? (isNum(ltest.labTol) ? Number(ltest.labTol) : (isNum(ltest.min) && isNum(ltest.max) ? (ltest.max - ltest.min) * 0.1 : null)) : null;
+  const weeks = emWeekly(from, to);
+  const par = paretoData(T.pareto, from, to);
+  const sup = supplierStats(S.loads.filter(l => inRange(l.received, from, to)));
+  const u = x => x && x.unit ? ' ' + x.unit : '';
+  return `<div class="pagehead"><div><h1 style="font-size:21px">Trending Center</h1><p>One place to see drift across every module. Range: ${UI.trend.range === 'all' ? 'all records' : fmtD(from) + ' – ' + fmtD(to)}.</p></div>
+    <div class="btns noprint"><button class="btn" data-act="csv" data-mod="trending">Export trend data CSV</button><button class="btn" data-act="print">Print trend report</button></div></div>
+  <div class="filters noprint">${rangeControls(UI.trend, 'trend-range')}</div>
+  <section class="panel"><div class="ph"><div><h2>Product test results by lot</h2><p>Dashed lines are spec limits; red points are out of spec.</p></div>
+    <div class="filters noprint" style="margin:0"><select data-ui="trend.product" aria-label="Product">${S.products.map(x => `<option value="${x.id}" ${x.id === T.product ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
+    <select data-ui="trend.test" aria-label="Test">${p ? p.tests.filter(x => x.type === 'num').map(x => `<option value="${x.key}" ${x.key === T.test ? 'selected' : ''}>${esc(x.name)}</option>`).join('') : ''}</select></div></div>
+    ${t ? `<div class="legend"><span><i style="background:var(--s1)"></i>${esc(t.name)} (in-house)</span><span><i class="dash"></i>Spec limits ${esc(specText(t))}</span><span><i class="dot" style="background:var(--crit)"></i>Out of spec</span></div>
+    ${chart('prod', W => lineChart({ title:`${t.name} by lot`, dp: t.dp, series:[{ name:t.name, color:'var(--s1)', points: lots.map(l => ({ x:l.date, y:Number(l.results[t.key]), flag: checkVal(t, l.results[t.key]) === 'oos', tip:`Lot ${l.code} · ${fmtD(l.date)} · ${t.name} ${fmtNum(l.results[t.key], t.dp)}${u(t)} · ${l.status}` })) }],
+      limits:[isNum(t.min) ? { y:Number(t.min), label:`LSL ${fmtNum(t.min, t.dp)}` } : null, isNum(t.max) ? { y:Number(t.max), label:`USL ${fmtNum(t.max, t.dp)}` } : null].filter(Boolean) }, W))}
+    ${stt ? `<dl class="kv" style="margin-top:8px"><dt>Lots</dt><dd>${stt.n}</dd><dt>Mean</dt><dd>${stt.mean.toFixed((t.dp || 2) + 1)}${u(t)}</dd><dt>Std dev</dt><dd>${stt.sd.toFixed((t.dp || 2) + 1)}</dd><dt>Range</dt><dd>${fmtNum(stt.min, t.dp)} – ${fmtNum(stt.max, t.dp)}</dd><dt>Ppk</dt><dd>${stt.ppk == null ? '— (needs 5+ lots and two-sided or one-sided limit)' : stt.ppk.toFixed(2) + (stt.ppk < 1.33 ? ' — below 1.33 target' : ' — capable')}</dd></dl>` : ''}
+    ${dataTable(['Date','Lot','Value','Status'], lots.map(l => [l.date, l.code, fmtNum(l.results[t.key], t.dp), checkVal(t, l.results[t.key]) === 'oos' ? 'OUT OF SPEC' : 'in spec']))}` : '<div class="empty">Add a product with a numeric test to trend it.</div>'}
+  </section>
+  <section class="panel"><div class="ph"><div><h2>In-house vs outside lab</h2><p>Two independent result series on one chart — divergence means one instrument is drifting, even while both read in spec.</p></div>
+    <div class="filters noprint" style="margin:0">${labOpts.length ? `<select data-ui="trend.lab" aria-label="Product and test">${labOpts.map(([v, n]) => `<option value="${v}" ${v === T.lab ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>` : ''}</div></div>
+    ${paired.length ? `<div class="legend"><span><i style="background:var(--s1)"></i>In-house</span><span><i style="background:var(--s2)"></i>Outside lab (split sample)</span></div>
+    ${chart('lab', W => lineChart({ title:'In-house vs outside lab', dp: ltest.dp, series:[
+      { name:'In-house', color:'var(--s1)', points: paired.map(l => ({ x:l.date, y:Number(l.results[lk]), tip:`Lot ${l.code} · in-house ${fmtNum(l.results[lk], ltest.dp)}${u(ltest)} · outside ${fmtNum(l.outside[lk], ltest.dp)} · diff ${(Number(l.results[lk]) - Number(l.outside[lk])).toFixed(ltest.dp ?? 3)}` })) },
+      { name:'Outside lab', color:'var(--s2)', points: paired.map(l => ({ x:l.date, y:Number(l.outside[lk]), tip:`Lot ${l.code} · outside lab ${fmtNum(l.outside[lk], ltest.dp)}${u(ltest)}` })) } ] }, W))}
+    <dl class="kv" style="margin-top:8px"><dt>Paired lots</dt><dd>${paired.length}</dd><dt>Mean bias (in-house − outside)</dt><dd>${(bias > 0 ? '+' : '') + bias.toFixed((ltest.dp ?? 2) + 1)}${u(ltest)}</dd><dt>Latest difference</dt><dd>${(diffs[diffs.length - 1] > 0 ? '+' : '') + diffs[diffs.length - 1].toFixed(ltest.dp ?? 3)}${u(ltest)}${tol != null ? ` (tolerance ±${tol})` : ''}${tol != null && Math.abs(diffs[diffs.length - 1]) > tol ? ' ' + pill('Diverging', 'crit', '✕') : ''}</dd></dl>
+    <div class="btns noprint" style="margin-top:8px"><button class="btn sm" data-act="case-from" data-kind="trend" data-id="${esc(`${lprod.name} ${ltest.name} in-house vs outside lab bias ${bias.toFixed((ltest.dp ?? 2) + 1)}${u(ltest)} over ${paired.length} paired lots`)}">Open CAPA case from this finding</button></div>
+    ${dataTable(['Date','Lot','In-house','Outside lab','Difference'], paired.map((l, i) => [l.date, l.code, fmtNum(l.results[lk], ltest.dp), fmtNum(l.outside[lk], ltest.dp), diffs[i].toFixed(ltest.dp ?? 3)]))}` : '<div class="empty">No paired in-house / outside-lab results in this range. Enter outside-lab values on a lot to compare.</div>'}
+  </section>
+  <div class="cols">
+  <section class="panel"><div class="ph"><div><h2>EM failures per week</h2><p>${weeks.reduce((n, w) => n + w.fails, 0)} failures in ${weeks.reduce((n, w) => n + w.total, 0)} swabs.</p></div></div>
+    ${chart('emw', W => barChart({ title:'EM failures per week', bars: weeks.map(w => ({ label: fmtDs(w.week), v: w.fails, tip:`Week of ${fmtD(w.week)}: ${w.fails} fail${w.fails === 1 ? '' : 's'} of ${w.total} swabs (${w.path} pathogen, ${w.atp} ATP) · pass rate ${w.total ? pct(w.total - w.fails, w.total) : '—'}%` })) }, W))}
+    ${dataTable(['Week of','Swabs','Fails','Pathogen','ATP','Pass rate'], weeks.map(w => [w.week, w.total, w.fails, w.path, w.atp, w.total ? pct(w.total - w.fails, w.total) + '%' : '—']))}
+  </section>
+  <section class="panel"><div class="ph"><div><h2>Pareto — the vital few</h2><p>Bars: share of all events (count on each bar). Line: cumulative %. Solid bars make up the first 80%.</p></div>
+    <div class="seg noprint" role="group" aria-label="Pareto source">${[['events','Failure events'],['rootcause','CAPA root-cause category'],['source','CAPA source']].map(([k, n]) => `<button class="${T.pareto === k ? 'on' : ''}" data-act="pareto" data-k="${k}">${n}</button>`).join('')}</div></div>
+    <div class="legend"><span><i class="bar" style="background:var(--s1)"></i>Share of total</span><span><i style="background:var(--s2)"></i>Cumulative %</span></div>
+    ${chart('pareto', W => paretoChart(par, W))}
+    ${dataTable(['Category','Count','Share','Cumulative','Examples'], (() => { const tot = par.reduce((n, c) => n + c.n, 0); let cu = 0; return par.map(c => { cu += c.n; return [c.name, c.n, pct(c.n, tot) + '%', pct(cu, tot) + '%', c.detail]; }); })())}
+  </section></div>
+  <section class="panel"><div class="ph"><div><h2>Supplier performance</h2><p>Loads received in range.</p></div></div>${supplierTable(S.loads.filter(l => inRange(l.received, from, to)))}</section>`;
+};
+A['pareto'] = d => { UI.trend.pareto = d.k; render(); };
+A['print'] = () => window.print();
+
+/* ============================================================
+   AUDIT PACKET
+   ============================================================ */
+VIEWS.audit = () => {
+  const [from, to] = rangeOf(UI.audit);
+  const sw = S.swabs.filter(s => inRange(s.date, from, to)); const swF = sw.filter(s => s.result === 'Fail');
+  const openInv = S.emInv.filter(i => i.status !== 'Closed');
+  const openH = S.holds.filter(isOpenHold);
+  const closed = S.cases.filter(c => c.status === 'Closed' && inRange(c.closedDate, from, to));
+  const openC = S.cases.filter(c => c.status !== 'Closed');
+  const rel = S.releases.filter(r => inRange(r.date, from, to)).sort((a, b) => a.date.localeCompare(b.date));
+  const loads = S.loads.filter(l => inRange(l.received, from, to));
+  const anySample = [sw, openH, rel, loads, S.cases, S.compliance].some(a => a.some(x => x.sample));
+  const byZone = [1,2,3,4].map(z => { const s = sw.filter(x => Number(siteById(x.siteId)?.zone) === z); const f = s.filter(x => x.result === 'Fail'); return { z, n: s.length, f: f.length }; });
+  const prog = PROGRAMS.map(p => { const it = S.compliance.filter(c => c.program === p); return { p, n: it.length, ok: it.filter(c => c.status === 'Compliant').length, od: it.filter(compOverdue).length, gap: it.filter(c => c.status === 'Gap Found').length }; });
+  const odA = overdueActions();
+  return `<div class="pagehead noprint"><div><h1 style="font-size:21px">Audit Packet</h1><p>One-page printable summary for an auditor or the QA Manager. Built live from the records.</p></div>
+    <div class="btns"><button class="btn primary" data-act="print">Print / save as PDF</button></div></div>
+  <div class="filters noprint">${rangeControls(UI.audit, 'audit-range')}</div>
+  <article class="packet" aria-label="Audit packet">
+    <div class="phead"><div><h1>Quality Assurance Summary</h1><div>Period: <b>${fmtD(from === '1900-01-01' ? (S.swabs.map(s => s.date).sort()[0] || today()) : from)} – ${fmtD(to > today() ? today() : to)}</b></div></div>
+      <div style="text-align:right">Generated ${fmtD(today())}<br>Prepared by ${esc(S.user)}${anySample ? '<br><span class="smp">CONTAINS SAMPLE DATA</span>' : ''}</div></div>
+    <div class="kpis">
+      <div class="kpi"><b>${sw.length ? pct(sw.length - swF.length, sw.length) + '%' : '—'}</b><span>EM pass rate (${sw.length} swabs)</span></div>
+      <div class="kpi"><b>${openInv.length}</b><span>Open EM investigations</span></div>
+      <div class="kpi"><b>${openH.length}</b><span>Open holds</span></div>
+      <div class="kpi"><b>${openC.length}</b><span>Open CAPA cases</span></div>
+      <div class="kpi"><b>${rel.length}</b><span>Lots released</span></div>
+      <div class="kpi"><b>${odA.length}</b><span>Overdue actions</span></div>
+    </div>
+    <div class="two"><div>
+      <h2>Environmental monitoring</h2>
+      <table><thead><tr><th>Zone</th><th>Swabs</th><th>Fails</th><th>Pass rate</th></tr></thead><tbody>${byZone.map(z => `<tr><td>Zone ${z.z}</td><td>${z.n}</td><td>${z.f ? `<span class="bad">${z.f}</span>` : 0}</td><td>${z.n ? pct(z.n - z.f, z.n) + '%' : '—'}</td></tr>`).join('')}</tbody></table>
+      ${openInv.length ? `<p style="margin:6px 0 0"><b>Open investigations:</b> ${openInv.map(i => `${esc(i.title)} (opened ${fmtDs(i.opened)}; ${i.actions.filter(a => a.done).length}/${i.actions.length} actions done${i.actions.some(actionOverdue) ? ', <span class="bad">action overdue</span>' : ''})`).join('; ')}</p>` : '<p style="margin:6px 0 0">No open investigations.</p>'}
+      ${S.sites.filter(s => isRepeatSite(s.id)).length ? `<p style="margin:4px 0 0"><b>Repeat-positive sites:</b> ${S.sites.filter(s => isRepeatSite(s.id)).map(s => esc(s.name)).join(', ')}</p>` : ''}
+      <h2>Open holds</h2>
+      ${openH.length ? `<table><thead><tr><th>Hold</th><th>Item</th><th>Reason</th><th>Days</th></tr></thead><tbody>${openH.map(h => `<tr><td class="nw">${esc(h.num)}</td><td>${esc(h.ref)}</td><td>${esc(h.reason)}</td><td>${holdAging(h)}</td></tr>`).join('')}</tbody></table>` : '<p style="margin:0">None.</p>'}
+    </div><div>
+      <h2>CAPA</h2>
+      ${closed.length ? `<table><thead><tr><th>Closed CAPA</th><th>Effectiveness proof</th></tr></thead><tbody>${closed.map(c => `<tr><td><b>${esc(c.num)}</b> ${esc(c.title)}<br>Root cause: ${esc(c.rca.rootCause)}</td><td><span class="ok">PASS</span> ${fmtDs(c.effectiveness.date)} — ${esc(c.effectiveness.metric)}${c.effectiveness.notes ? '. ' + esc(c.effectiveness.notes) : ''}</td></tr>`).join('')}</tbody></table>` : '<p style="margin:0 0 4px">No CAPA cases closed in this period.</p>'}
+      ${openC.length ? `<table style="margin-top:4px"><thead><tr><th>Open CAPA</th><th>Sev.</th><th>Status</th></tr></thead><tbody>${openC.map(c => `<tr><td>${esc(c.num)} ${esc(c.title)}</td><td>${esc(c.severity)}</td><td>${esc(c.status)}${[...c.corrective, ...c.preventive].some(actionOverdue) ? ' · <span class="bad">overdue action</span>' : ''}</td></tr>`).join('')}</tbody></table>` : ''}
+      <h2>Compliance programs</h2>
+      <table><thead><tr><th>Program</th><th>Compliant</th><th>Overdue</th><th>Gaps</th></tr></thead><tbody>${prog.map(p => `<tr><td>${p.p}</td><td>${p.ok}/${p.n}</td><td>${p.od ? `<span class="bad">${p.od}</span>` : 0}</td><td>${p.gap ? `<span class="bad">${p.gap}</span>` : 0}</td></tr>`).join('')}</tbody></table>
+      <h2>Incoming materials</h2>
+      <p style="margin:0">${loads.length} loads received · ${loads.filter(l => l.decision === 'Accept').length} accepted · ${loads.filter(l => l.decision === 'Hold').length} held · ${loads.filter(l => l.decision === 'Reject').length} rejected · ${loads.filter(l => loadEval(l).coaOos.length).length} COA out of spec</p>
+    </div></div>
+    <h2>Release history</h2>
+    ${rel.length ? `<div class="tw"><table><thead><tr><th>Date</th><th>Lot</th><th>Product</th><th>Released by</th><th>Reviewed by</th><th>Data at release</th></tr></thead><tbody>${rel.map(r => `<tr><td class="nw">${fmtDs(r.date)}</td><td class="nw">${esc(r.code)}</td><td>${esc(r.product)}</td><td>${esc(r.by)}</td><td>${esc(r.reviewer)}</td><td>${esc(r.data)}</td></tr>`).join('')}</tbody></table></div>` : '<p style="margin:0">No lots released in this period.</p>'}
+    <div class="sig-line"><div>Reviewed by (QA Manager) / date</div><div>Prepared by / date</div></div>
+    <div class="note">Release and CAPA closure are gated in the system: lots cannot be released without all required tests in spec, a record-review sign-off and no open hold; CAPA cases cannot close without completed actions and a passing effectiveness check.${anySample ? ' Records marked SAMPLE are demonstration data.' : ''}</div>
+  </article>`;
+};
+
+/* ============================================================
+   COMPLIANCE CHECKLIST
+   ============================================================ */
+VIEWS.compliance = () => {
+  let items = S.compliance.slice();
+  if (UI.compFilter === 'overdue') items = items.filter(compOverdue);
+  if (UI.compFilter === 'gap') items = items.filter(c => c.status === 'Gap Found' || c.status === 'Not Assessed');
+  return `<div class="pagehead"><div><h1 style="font-size:21px">Compliance Checklist</h1><p>Program and site assessments for HACCP, GMP, FSMA, BRC and Organic programs. Overdue items surface on the dashboard.</p></div>
+    <div class="btns"><button class="btn primary" data-act="new-comp">+ Assessment item</button><button class="btn" data-act="csv" data-mod="compliance">Export CSV</button></div></div>
+  <div class="stats">${PROGRAMS.map(p => { const it = S.compliance.filter(c => c.program === p); const od = it.filter(compOverdue).length; const ok = it.filter(c => c.status === 'Compliant').length;
+    return `<div class="stat t-${od ? 'crit' : ok === it.length && it.length ? 'good' : 'warn'}"><div class="n">${ok}/${it.length}</div><div class="l">${p}</div><div class="s">${od ? `${od} overdue` : 'none overdue'}</div></div>`; }).join('')}</div>
+  <section class="panel"><div class="ph"><div><h2>Assessment items</h2><p>${items.length} shown</p></div>
+    <div class="seg" role="group" aria-label="Filter items">${[['all','All'],['overdue','Overdue'],['gap','Gaps / not assessed']].map(([k, n]) => `<button class="${UI.compFilter === k ? 'on' : ''}" data-act="comp-filter" data-f="${k}">${n}</button>`).join('')}</div></div>
+    ${PROGRAMS.map(p => { const it = items.filter(c => c.program === p); return it.length ? `<h3 style="margin:12px 0 6px">${p}</h3><div class="list">${it.sort((a, b) => a.due.localeCompare(b.due)).map(compRow).join('')}</div>` : ''; }).join('') || '<div class="empty">No items match.</div>'}
+  </section>`;
+};
+function compRow(c) {
+  const od = compOverdue(c);
+  return `<div class="rec ${od ? 'flag-crit' : c.status === 'Compliant' ? 'flag-good' : 'flag-warn'}"><div class="main"><div class="t">${esc(c.item)} ${st(c.status)} ${od ? pill('Overdue ' + plural(diffDays(c.due, today()), 'day'), 'crit', '✕') : ''}${SB(c)}</div>
+    <div class="m">Last assessed ${fmtD(c.last)} · next due ${fmtD(c.due)} · every ${c.interval} days · ${esc(c.owner || '—')}${c.notes ? ' · ' + esc(c.notes) : ''}</div></div>
+    <div class="acts"><button class="btn sm" data-act="comp-done" data-id="${c.id}">Mark assessed today</button><button class="btn sm" data-act="open" data-kind="comp" data-id="${c.id}">Edit</button></div></div>`;
+}
+A['comp-filter'] = d => { UI.compFilter = d.f; render(); };
+A['comp-done'] = d => {
+  const c = S.compliance.find(x => x.id === d.id); if (!c) return;
+  const res = prompt(`Assessment result for "${c.item}" — type Compliant, In Progress or Gap Found:`, 'Compliant'); if (res == null) return;
+  const status = COMP_STATUSES.find(s => s.toLowerCase() === res.trim().toLowerCase()) || 'Compliant';
+  c.status = status; c.last = today(); c.due = addDays(today(), Number(c.interval) || 30);
+  log('compliance', `${c.program}: ${c.item} assessed — ${status}`); save(); render();
+};
+function compEditor(c, isNew) {
+  openModal({ title: isNew ? 'New assessment item' : 'Assessment item', draft: clone(c),
+    body: d => `<div class="form two">${F.sel('Program', 'program', d, PROGRAMS)}${F.sel('Status', 'status', d, COMP_STATUSES)}
+      ${F.text('Assessment item', 'item', d, { full:true })}
+      ${F.date('Last assessed', 'last', d)}${F.date('Next due', 'due', d)}
+      ${F.text('Frequency (days)', 'interval', d, { inputmode:'numeric' })}${F.text('Owner', 'owner', d)}
+      ${F.area('Notes / findings', 'notes', d)}</div>`,
+    extra: d => isNew ? '' : `<button class="btn danger" data-act="del" data-kind="comp" data-id="${d.id}">Delete</button>`,
+    onSave: d => { const errs = []; if (!d.item) errs.push('Enter the assessment item.'); if (!validDate(d.due)) errs.push('Enter the next due date.');
+      if (errs.length) { M.error = { title:'Can’t save yet', items: errs }; return false; }
+      d.interval = Number(d.interval) || 30; upsert('compliance', d); log('compliance', `${d.program}: ${d.item} ${isNew ? 'added' : 'updated'} — ${d.status}`); return true; } });
+}
+A['new-comp'] = () => compEditor({ id: uid('cp'), program:'GMP', item:'', status:'Not Assessed', last:'', due: addDays(today(), 30), interval:30, owner: S.user, notes:'' }, true);
+
+/* ============================================================
+   GLOBAL SEARCH
+   ============================================================ */
+function searchAll(q) {
+  q = q.toLowerCase().trim(); if (q.length < 2) return [];
+  const terms = q.split(/\s+/); const hit = s => { const t = s.toLowerCase(); return terms.every(x => t.includes(x)); };
+  const out = [];
+  S.swabs.forEach(s => { const site = siteById(s.siteId); const txt = [site?.name, 'zone ' + site?.zone, s.type, s.result, s.result === 'Fail' ? 'positive fail' : 'negative pass', s.analyst, s.notes, s.date, 'swab'].join(' ');
+    if (hit(txt)) out.push({ kind:'swab', id:s.id, k:'Swab', t:`${site?.name} — ${s.type} ${swabResultLabel(s)}`, m:fmtD(s.date) }); });
+  S.emInv.forEach(i => { if (hit([i.title, i.notes, i.status, 'investigation', ...i.actions.map(a => a.desc)].join(' '))) out.push({ kind:'inv', id:i.id, k:'EM investigation', t:i.title, m:i.status }); });
+  S.lots.forEach(l => { const p = productById(l.productId); if (hit([l.code, p?.name, l.status, l.notes, l.sensoryNotes, 'lot', l.date].join(' '))) out.push({ kind:'lot', id:l.id, k:'Lot', t:`${l.code} — ${p?.name}`, m:l.status }); });
+  S.loads.forEach(l => { const m = materialById(l.materialId); if (hit([l.supplier, l.supplierLot, m?.name, l.decision, l.reason, 'load incoming coa', l.received].join(' '))) out.push({ kind:'load', id:l.id, k:'Incoming load', t:`${l.supplierLot} — ${m?.name}`, m:`${l.supplier} · ${l.decision}` }); });
+  S.holds.forEach(h => { if (hit([h.num, h.ref, h.reason, h.status, h.itemType, 'hold', h.disposition].join(' '))) out.push({ kind:'hold', id:h.id, k:'Hold', t:`${h.num} — ${h.ref}`, m:h.status }); });
+  S.cases.forEach(c => { if (hit([c.num, c.title, c.deviation, c.containment, c.rca.rootCause, ...c.rca.whys, c.status, c.severity, c.owner, 'capa case deviation', ...c.corrective.map(a => a.desc), ...c.preventive.map(a => a.desc)].join(' '))) out.push({ kind:'case', id:c.id, k:'CAPA case', t:`${c.num} — ${c.title}`, m:c.status }); });
+  S.compliance.forEach(c => { if (hit([c.program, c.item, c.status, c.notes, c.owner, 'compliance assessment'].join(' '))) out.push({ kind:'comp', id:c.id, k:'Compliance', t:`${c.program}: ${c.item}`, m:c.status }); });
+  return out;
+}
+(() => {
+  const q = $('#q'), box = $('#qres');
+  const run = () => { const res = searchAll(q.value);
+    if (q.value.trim().length < 2) { box.hidden = true; return; }
+    box.innerHTML = res.length ? `<div class="tiny muted" style="padding:6px 12px">${res.length} result${res.length === 1 ? '' : 's'}</div>` + res.slice(0, 40).map(r => `<button data-act="open" data-kind="${r.kind}" data-id="${r.id}"><span class="k">${esc(r.k)}</span><br>${esc(r.t)} <span class="muted small">· ${esc(r.m)}</span></button>`).join('') : '<div class="empty" style="border:0">No matches.</div>';
+    box.hidden = false; };
+  q.addEventListener('input', run); q.addEventListener('focus', run);
+  q.addEventListener('keydown', e => { if (e.key === 'Escape') { box.hidden = true; q.blur(); } if (e.key === 'ArrowDown') { const b = box.querySelector('button'); if (b) { e.preventDefault(); b.focus(); } } });
+  box.addEventListener('keydown', e => { const bs = $$('button', box); const i = bs.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown' && i < bs.length - 1) { e.preventDefault(); bs[i + 1].focus(); } if (e.key === 'ArrowUp') { e.preventDefault(); (i > 0 ? bs[i - 1] : q).focus(); } if (e.key === 'Escape') { box.hidden = true; q.focus(); } });
+  document.addEventListener('keydown', e => { if (e.key === '/' && !e.target.closest('input,textarea,select') && !$('#dlg').open) { e.preventDefault(); q.focus(); } });
+})();
+
+/* ============================================================
+   CSV EXPORT, BACKUP, OFFLINE COPY, MENU
+   ============================================================ */
+function csvCell(v) { let s = String(v ?? ''); if (/^[=+@\t\r]/.test(s) || /^-[^0-9.]/.test(s)) s = "'" + s; return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+function toCSV(head, rows) { return '﻿' + [head, ...rows].map(r => r.map(csvCell).join(',')).join('\r\n'); }
+function download(name, text, type) { const b = new Blob([text], { type: type || 'text/csv;charset=utf-8' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
+const smp = r => r.sample ? 'SAMPLE' : '';
+const CSV = {
+  em: () => ['em-swabs', ['Date','Site','Zone','Area','Test type','RLU','Result','Analyst','Notes','CAPA','Data'], S.swabs.slice().sort((a, b) => a.date.localeCompare(b.date)).map(s => { const st = siteById(s.siteId) || {}; return [s.date, st.name, st.zone, st.area, s.type, s.value, isPathogen(s.type) ? (s.result === 'Fail' ? 'Positive' : 'Negative') : s.result, s.analyst, s.notes, caseById(s.caseId)?.num || '', smp(s)]; })],
+  product: () => { const keys = [...new Map(S.products.flatMap(p => p.tests).map(t => [t.key, t.name])).entries()];
+    return ['product-lots', ['Lot','Product','Date','Status', ...keys.map(([k, n]) => n), ...keys.map(([k, n]) => n + ' (outside lab)'), 'Out of spec','Reviewed by','Review date','Released by','CAPA','Data'],
+      S.lots.slice().sort((a, b) => a.date.localeCompare(b.date)).map(l => [l.code, productById(l.productId)?.name, l.date, l.status, ...keys.map(([k]) => (l.results || {})[k] ?? ''), ...keys.map(([k]) => (l.outside || {})[k] ?? ''), lotEval(l).oos.map(r => r.t.name).join('; '), l.review?.by, l.review?.date, l.releasedBy, caseById(l.caseId)?.num || '', smp(l)])]; },
+  incoming: () => ['incoming-loads', ['Received','Supplier','Material','Supplier lot','COA received','COA values','COA out of spec','Internal results','Decision','Reason','Decided by','CAPA','Data'],
+    S.loads.slice().sort((a, b) => a.received.localeCompare(b.received)).map(l => { const ev = loadEval(l); return [l.received, l.supplier, ev.m?.name, l.supplierLot, l.coaReceived ? 'Yes' : 'No', ev.coa.filter(r => r.st !== 'missing').map(r => `${r.t.name}=${r.v}`).join('; '), ev.coaOos.map(r => r.t.name).join('; '), ev.internal.map(r => `${r.t.name}=${r.v}`).join('; '), l.decision, l.reason, l.decidedBy, caseById(l.caseId)?.num || '', smp(l)]; })],
+  capa: () => ['capa-cases', ['Case','Title','Severity','Status','Opened','Owner','Source','Deviation','Containment','Root cause','Fishbone','Corrective actions','Preventive actions','Effectiveness metric','Check date','Result','Closed','Linked holds','Data'],
+    S.cases.map(c => [c.num, c.title, c.severity, c.status, c.opened, c.owner, linkLabel(c.source), c.deviation, c.containment, c.rca.rootCause, c.rca.cats.join('; '),
+      c.corrective.map(a => `${a.done ? '[x]' : '[ ]'} ${a.desc} (${a.owner}, due ${a.due})`).join(' | '), c.preventive.map(a => `${a.done ? '[x]' : '[ ]'} ${a.desc} (${a.owner}, due ${a.due})`).join(' | '),
+      c.effectiveness.metric, c.effectiveness.date, c.effectiveness.result, c.closedDate, S.holds.filter(h => h.caseId === c.id).map(h => h.num).join('; '), smp(c)])],
+  holds: () => ['holds', ['Hold','Item type','Item','Reason','Placed','Placed by','Status','Days on hold','Disposition','Disposition date','CAPA','Data'],
+    S.holds.map(h => [h.num, h.itemType, h.ref, h.reason, h.placed, h.placedBy, h.status, holdAging(h), h.disposition, h.dispDate, caseById(h.caseId)?.num || '', smp(h)])],
+  compliance: () => ['compliance', ['Program','Item','Status','Last assessed','Next due','Overdue','Frequency (days)','Owner','Notes','Data'], S.compliance.map(c => [c.program, c.item, c.status, c.last, c.due, compOverdue(c) ? 'Yes' : 'No', c.interval, c.owner, c.notes, smp(c)])],
+  trending: () => { const [from, to] = rangeOf(UI.trend); const rows = [];
+    S.lots.filter(l => inRange(l.date, from, to)).forEach(l => { const p = productById(l.productId); (p?.tests || []).filter(t => t.type === 'num').forEach(t => { if (isNum(l.results[t.key])) rows.push([l.date, 'Product', p.name, t.name, l.code, l.results[t.key], (l.outside || {})[t.key] ?? '', t.min, t.max, checkVal(t, l.results[t.key]) === 'oos' ? 'OOS' : 'in spec']); }); });
+    emWeekly(from, to).forEach(w => rows.push([w.week, 'EM weekly', '', 'Fails / swabs', '', w.fails, '', '', '', `${w.total} swabs`]));
+    return ['trend-data', ['Date','Series','Product','Measure','Lot','Value (in-house)','Outside lab','Spec min','Spec max','Note'], rows]; },
+};
+A['csv'] = d => { const f = CSV[d.mod]; if (!f) return; const [name, head, rows] = f(); download(`qa-${name}-${today()}.csv`, toCSV(head, rows)); toast(`Exported ${rows.length} rows to CSV.`); };
+A['csv-holds'] = () => A['csv']({ mod:'holds' });
+A['export-json'] = () => { download(`qa-lab-suite-backup-${today()}.json`, JSON.stringify(S, null, 1), 'application/json'); toast('Backup downloaded.'); };
+A['import-json'] = () => $('#importFile').click();
+$('#importFile').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return; const r = new FileReader();
+  r.onload = () => { try { const d = JSON.parse(r.result); if (!d || d.version !== 1 || !Array.isArray(d.lots)) throw new Error('bad');
+      if (!confirm('Replace all data in this browser with the backup?')) return;
+      S = Object.assign(emptyState(), d); log('system', 'Data restored from backup'); save(); render(); toast('Backup restored.'); }
+    catch (err) { toast('That file is not a QA Lab Suite backup.', 'crit'); } e.target.value = ''; };
+  r.readAsText(f);
+});
+A['download-offline'] = () => {
+  const doc = PRISTINE.cloneNode(true); const bakedAt = new Date().toISOString();
+  doc.querySelector('#baked-data').textContent = JSON.stringify({ bakedAt, state: S }).replace(/</g, '\\u003c');
+  download(`qa-lab-suite-offline-${today()}.html`, '<!DOCTYPE html>\n' + doc.outerHTML, 'text/html;charset=utf-8');
+  toast('Offline copy downloaded — open it from any folder; your current data is baked in.');
+};
+A['reload-sample'] = () => { if (!confirm('Replace ALL data in this browser with the SAMPLE data set? Your own records will be lost unless you back them up first.')) return; const u = S.user; S = buildSeed(); S.user = u; save(); render(); toast('Sample data loaded.'); };
+A['clear-all'] = () => { if (!confirm('Delete ALL records, specs and sites from this browser and start blank? Back up first if you need them.')) return; const u = S.user; S = emptyState(); S.user = u; log('system', 'All data cleared'); save(); render(); toast('All data cleared.'); };
+A['clear-sample'] = () => {
+  if (!confirm('Remove all SAMPLE records (swabs, lots, loads, holds, cases, activity)? Sites, product specs, material specs and the compliance checklist are kept as editable starting templates.')) return;
+  ['swabs','emInv','lots','releases','loads','holds','cases','activity'].forEach(k => { S[k] = S[k].filter(x => !x.sample); });
+  ['sites','products','materials'].forEach(k => S[k].forEach(x => { delete x.sample; }));
+  S.compliance.forEach(c => { if (c.sample) { delete c.sample; c.status = 'Not Assessed'; c.last = ''; c.notes = ''; c.due = addDays(today(), 7); } });
+  S.seq = { capa:0, hold:0 }; S.sampleLoaded = false;
+  log('system', 'Sample records removed'); save(); render(); toast('Sample records removed.');
+};
+A['set-user'] = () => { const n = prompt('Your name or initials, used as the default on new records:', S.user); if (n && n.trim()) { S.user = n.trim(); save(); toast(`Records will default to ${S.user}.`); } };
+$('#menuBtn').addEventListener('click', e => { e.stopPropagation(); const dd = $('#menuDd'); dd.hidden = !dd.hidden; $('#menuBtn').setAttribute('aria-expanded', String(!dd.hidden)); });
+window.addEventListener('storage', e => { if (e.key === LS_KEY && !M) { try { S = Object.assign(emptyState(), JSON.parse(e.newValue)); render(); } catch (err) {} } });
+
+/* ---------- boot ---------- */
+loadState();
+render();
+</script>
+</body>
+</html>
