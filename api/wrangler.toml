@@ -1,0 +1,17 @@
+name = "qa-lab-suite-api"
+main = "src/worker.js"
+compatibility_date = "2025-06-01"
+
+[vars]
+# Comma-separated list of sites allowed to call the API (your GitHub Pages origin, plus localhost for testing).
+ALLOWED_ORIGINS = "https://aberger94.github.io,http://localhost:8080"
+# Sign out after this many idle minutes, and after this many hours regardless.
+SESSION_IDLE_MINUTES = "60"
+SESSION_MAX_HOURS = "12"
+# "true" lets the person who e-signed the record review also e-sign the release. Default: two different people.
+ALLOW_SELF_RELEASE = "false"
+
+# Secrets — set with `npx wrangler secret put <NAME>`, never commit them:
+#   TURSO_URL         libsql://<db>-<org>.turso.io
+#   TURSO_AUTH_TOKEN  from `turso db tokens create <db>`
+#   SETUP_TOKEN       any long random string; needed once to create the first admin
