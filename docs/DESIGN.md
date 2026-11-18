@@ -1,7 +1,18 @@
 # QA Lab Suite — Design Document
 
-**Status:** Phases 1–3 built in `index.html` (2026-11-18). Phase 4 (publish on GitHub Pages) pending merge to `main`.
+**Status:** Phases 1–3 built in `index.html` (2026-11-18). Server mode added: shared data, per-person sign-in, e-signatures and an audit trail (see `DEPLOY.md`, `PART11.md`). Phase 4 (publish on GitHub Pages and deploy the API) pending.
 **Destination:** Static webpage, hosted from GitHub repo `ABerger94/QA-Suite` via GitHub Pages (single self-contained `index.html`, no backend, no external requests required to run).
+
+## Server mode (added 2026-11-18 at Alek's request)
+
+The goal: the same data on phone and laptop, and real per-person sign-in, so that "Reviewed by" and "Released by" are proven identities suitable for Part 11-style e-signatures and audit trails.
+
+- **Architecture:** GitHub Pages (unchanged `index.html`) → Cloudflare Worker API (`api/`) → Turso. The database token stays a Worker secret, never in the page.
+- **Identity:** a named account per person; roles viewer / tech / manager / admin; PBKDF2 password hashing, lockout, idle timeout.
+- **E-signatures:** lot review (tech+), lot release (manager+, different person from the reviewer), CAPA closure (manager+). The password is re-entered at each signature. Each signature is linked to the record version and a content hash. Changing a lot's results voids its review signature.
+- **Audit trail:** append-only (database triggers), hash-chained, with full before/after values and a reason for change on locked records and deletes.
+- **Sync:** each save sends the changed records with their versions. A concurrent edit is rejected with a conflict, and the view refreshes.
+- **Demo mode** stays the default when no API is configured.
 
 ## Build notes — decisions made during implementation
 

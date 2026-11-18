@@ -1,0 +1,4 @@
+tests/shots/
+tests/shots-server/
+api/node_modules/
+*.db

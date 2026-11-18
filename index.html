@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>QA Lab Suite</title>
+<meta name="qa-api" content="">
 <meta name="description" content="Connected quality-assurance workspace: environmental monitoring, finished product release, incoming COA control, holds and CAPA, trending, audit packet and compliance checklist.">
 <style>
 :root{
@@ -254,6 +255,21 @@ dialog::backdrop{background:rgba(10,10,10,.5)}
 .packet .sig-line{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:16px;font-size:11px}
 .packet .sig-line div{border-top:1px solid #111;padding-top:3px}
 .packet .ok{color:#0b6e0b;font-weight:700}.packet .bad{color:#a92626;font-weight:700}
+.who{font-size:12px;line-height:1.25;text-align:right;color:var(--text-2)}
+.warnt{color:var(--crit-ink);font-weight:700}
+.authbox{max-width:440px;margin:24px auto}
+.authbox h1{font-size:21px;margin-bottom:4px}
+.sigline{display:flex;gap:8px;align-items:flex-start;font-size:13px;padding:7px 9px;border:1px solid var(--border);border-radius:8px;margin-top:6px;background:var(--surface)}
+.sigline.ok{border-color:var(--good);background:var(--good-soft)}
+.sigline .i{font-weight:800;color:var(--good-ink)}
+.sigbox{border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--surface-2)}
+.sigbox .meaning{font-weight:650;font-size:15px}
+.trail{list-style:none;margin:0;padding:0}
+.trail li{border-left:3px solid var(--border);padding:6px 0 8px 10px;margin-bottom:6px;font-size:13px}
+.offbar{background:var(--crit-soft);color:var(--crit-ink);border:1px solid var(--crit);border-radius:10px;padding:8px 12px;margin-bottom:14px;font-size:13px}
+body.server-mode[data-role="viewer"] [data-act^="new-"], body.server-mode[data-role="viewer"] [data-act="case-from"], body.server-mode[data-role="viewer"] [data-act="comp-done"], body.server-mode[data-role="viewer"] [data-act="modal-save"]:not(.keep) {display:none}
+body.server-mode[data-role="tech"] [data-act="new-product"], body.server-mode[data-role="tech"] [data-act="new-material"], body.server-mode[data-role="tech"] [data-act="new-site"] {display:none}
+body.auth .search, body.auth .tabs, body.auth .menu {display:none}
 .printonly{display:none}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media print{
@@ -287,18 +303,10 @@ dialog::backdrop{background:rgba(10,10,10,.5)}
       <input id="q" type="search" placeholder="Search swabs, lots, loads, holds, cases…" autocomplete="off" aria-label="Search all records">
       <div id="qres" class="results" hidden></div>
     </div>
+    <div id="who" class="who" hidden></div>
     <div class="menu">
       <button class="btn sm" id="menuBtn" aria-haspopup="true" aria-expanded="false">Data ▾</button>
-      <div class="dd" id="menuDd" hidden>
-        <button data-act="set-user">Set my name for records…</button>
-        <hr>
-        <button data-act="download-offline">Download offline copy (data baked in)</button>
-        <button data-act="export-json">Back up all data (JSON)</button>
-        <button data-act="import-json">Restore from backup (JSON)…</button>
-        <hr>
-        <button data-act="reload-sample">Reset to SAMPLE data</button>
-        <button data-act="clear-all">Clear all data (start blank)</button>
-      </div>
+      <div class="dd" id="menuDd" hidden></div>
     </div>
   </div>
   <nav class="tabs" id="tabs" aria-label="Modules"></nav>
@@ -363,11 +371,17 @@ function emptyState() {
     seq:{capa:0, hold:0},
     sites:[], swabs:[], emInv:[], products:[], lots:[], releases:[], materials:[], loads:[], holds:[], cases:[], compliance:[], activity:[] };
 }
-function save() {
+function saveLocal() {
   try { localStorage.setItem(LS_KEY, JSON.stringify(S)); }
   catch (e) { toast('Could not save to this browser’s storage — export a backup from the Data menu.', 'crit'); }
 }
+/* Persist the current state: localStorage in demo mode, or push the changes to the server. */
+function save() {
+  if (MODE === 'local') { saveLocal(); return Promise.resolve({ ok:true }); }
+  return commit().then(r => { if (!r.ok) { rebuildFromShadow(); toast(r.error, 'crit'); } render(); return r; });
+}
 function log(mod, text) {
+  if (MODE === 'server') { PENDING_SUMMARIES.push(text); return; }
   S.activity.unshift({ id: uid('ac'), ts: new Date().toISOString(), mod, text });
   if (S.activity.length > 400) S.activity.length = 400;
 }
@@ -421,68 +435,102 @@ function overdueActions() {
 function holdAging(h) { return diffDays(h.placed, isOpenHold(h) ? today() : (h.dispDate || today())); }
 function compOverdue(c) { return validDate(c.due) && c.due < today(); }
 
-/* spec checks — tests: {key,name,unit,min,max,type:'num'|'pf',req,dp} */
-function checkVal(t, v) {
-  if (t.type === 'pf') return v === 'Pass' ? 'ok' : v === 'Fail' ? 'oos' : 'missing';
-  if (!isNum(v)) return 'missing';
-  const n = Number(v);
-  if (isNum(t.min) && n < Number(t.min)) return 'oos';
-  if (isNum(t.max) && n > Number(t.max)) return 'oos';
-  return 'ok';
-}
-function specText(t) {
-  if (t.type === 'pf') return 'Pass required';
-  const u = t.unit ? ' ' + t.unit : ''; const f = v => fmtNum(v, t.dp);
-  if (isNum(t.min) && isNum(t.max)) return `${f(t.min)} – ${f(t.max)}${u}`;
-  if (isNum(t.min)) return `≥ ${f(t.min)}${u}`;
-  if (isNum(t.max)) return `≤ ${f(t.max)}${u}`;
-  return 'record only';
-}
-function lotEval(lot) {
-  const p = productById(lot.productId);
-  const rows = (p ? p.tests : []).map(t => ({ t, v: (lot.results || {})[t.key], st: checkVal(t, (lot.results || {})[t.key]) }));
-  return { p, rows, missing: rows.filter(r => r.t.req && r.st === 'missing'), oos: rows.filter(r => r.st === 'oos') };
-}
+/* RULES:BEGIN — this block is copied verbatim into index.html; `npm run check-rules` verifies they match. */
+const R = (() => {
+  const isNum = v => v !== '' && v != null && isFinite(Number(v));
+  const validDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s || '');
+  const fmtNum = (v, dp) => !isNum(v) ? '—' : dp == null ? String(Number(v)) : Number(v).toFixed(dp);
+  /* tests: {key,name,unit,min,max,type:'num'|'pf',req,dp} */
+  function checkVal(t, v) {
+    if (t.type === 'pf') return v === 'Pass' ? 'ok' : v === 'Fail' ? 'oos' : 'missing';
+    if (!isNum(v)) return 'missing';
+    const n = Number(v);
+    if (isNum(t.min) && n < Number(t.min)) return 'oos';
+    if (isNum(t.max) && n > Number(t.max)) return 'oos';
+    return 'ok';
+  }
+  function specText(t) {
+    if (t.type === 'pf') return 'Pass required';
+    const u = t.unit ? ' ' + t.unit : ''; const f = v => fmtNum(v, t.dp);
+    if (isNum(t.min) && isNum(t.max)) return `${f(t.min)} – ${f(t.max)}${u}`;
+    if (isNum(t.min)) return `≥ ${f(t.min)}${u}`;
+    if (isNum(t.max)) return `≤ ${f(t.max)}${u}`;
+    return 'record only';
+  }
+  function evalTests(tests, values) {
+    const rows = (tests || []).map(t => ({ t, v: (values || {})[t.key], st: checkVal(t, (values || {})[t.key]) }));
+    return { rows, missing: rows.filter(r => r.t.req && r.st === 'missing'), oos: rows.filter(r => r.st === 'oos') };
+  }
+  /* The fields an e-signature on a lot covers. Changing any of them invalidates the review signature. */
+  function lotSignedContent(lot) { return JSON.stringify([lot.productId || '', lot.code || '', lot.date || '', Object.keys(lot.results || {}).sort().map(k => [k, String(lot.results[k])])]); }
+  function testChecks(lot, product) {
+    const ev = evalTests(product ? product.tests : [], lot.results);
+    return [
+      { key: 'product', ok: !!product, txt: 'Product with spec limits selected' },
+      { key: 'entered', ok: !!product && !ev.missing.length, txt: ev.missing.length ? `Required tests entered — missing: ${ev.missing.map(r => r.t.name).join(', ')}` : 'All required tests entered' },
+      { key: 'spec', ok: !ev.oos.length, txt: ev.oos.length ? `All results within spec — out of spec: ${ev.oos.map(r => r.t.name).join(', ')}` : 'All results within spec' },
+    ];
+  }
+  const holdCheck = h => ({ key: 'hold', ok: !h, txt: h ? `No open hold — ${h.num || 'hold'} must be dispositioned in Holds & CAPA first` : 'No open hold on this lot' });
+  /* Preconditions for the record-review e-signature (server mode). */
+  function reviewChecks(lot, product, ctx) {
+    return [...testChecks(lot, product), holdCheck(ctx && ctx.openHold),
+      { key: 'notReleased', ok: lot.status !== 'Released', txt: 'Lot not already released' }];
+  }
+  /* Release gate. ctx: {mode:'local'|'server', openHold, userId, separate} */
+  function releaseChecks(lot, product, ctx) {
+    ctx = ctx || {}; const out = testChecks(lot, product); const rv = lot.review || {};
+    if (ctx.mode === 'server') {
+      out.push({ key: 'review', ok: !!rv.sigId, txt: rv.sigId ? `Record review e-signed by ${rv.by}` : 'Record review e-signed (Reviewed signature)' });
+      if (ctx.separate) out.push({ key: 'separate', ok: !rv.sigId || !ctx.userId || rv.userId !== ctx.userId, txt: 'Releaser is a different person from the reviewer' });
+    } else {
+      out.push({ key: 'review', ok: !!(rv.by && validDate(rv.date)), txt: 'Record-review sign-off (reviewer + date)' });
+      out.push({ key: 'releasedBy', ok: !!lot.releasedBy, txt: 'Released by recorded' });
+    }
+    out.push(holdCheck(ctx.openHold));
+    return out;
+  }
+  function acceptChecks(load, material) {
+    const coa = evalTests(material ? material.tests : [], load.coa);
+    const internal = evalTests(material ? material.tests : [], load.internal).rows.filter(r => r.st !== 'missing');
+    const iOos = internal.filter(r => r.st === 'oos');
+    const missing = coa.rows.filter(r => r.st === 'missing');
+    return [
+      { key: 'material', ok: !!material, txt: 'Material with specification selected' },
+      { key: 'coa', ok: !!load.coaReceived, txt: 'COA received' },
+      { key: 'coaEntered', ok: !!load.coaReceived && !missing.length, txt: missing.length ? `COA values entered — missing: ${missing.map(r => r.t.name).join(', ')}` : 'All COA values entered' },
+      { key: 'coaSpec', ok: !coa.oos.length, txt: coa.oos.length ? `COA within spec — outside: ${coa.oos.map(r => r.t.name).join(', ')}` : 'COA values within spec' },
+      { key: 'internal', ok: !iOos.length, txt: iOos.length ? `Internal tests within spec — outside: ${iOos.map(r => r.t.name).join(', ')}` : 'Internal test results within spec (where tested)' },
+    ];
+  }
+  function closureChecks(c) {
+    const e = c.effectiveness || {};
+    const acts = [...(c.corrective || []), ...(c.preventive || [])]; const open = acts.filter(a => !a.done);
+    return [
+      { key: 'rootCause', ok: !!(c.rca && c.rca.rootCause), txt: 'Root-cause statement recorded' },
+      { key: 'corrective', ok: (c.corrective || []).length > 0, txt: 'At least one corrective action' },
+      { key: 'actions', ok: !open.length, txt: open.length ? `All actions complete — ${open.length} still open` : 'All corrective & preventive actions complete' },
+      { key: 'effRecorded', ok: !!(e.metric && validDate(e.date)), txt: 'Effectiveness check recorded (metric + check date)' },
+      { key: 'effPass', ok: e.result === 'Pass', txt: e.result === 'Fail' ? 'Effectiveness check result is Fail — revisit root cause' : 'Effectiveness check result = Pass' },
+    ];
+  }
+  const allOk = g => g.every(x => x.ok);
+  return { isNum, validDate, fmtNum, checkVal, specText, evalTests, lotSignedContent, reviewChecks, releaseChecks, acceptChecks, closureChecks, allOk };
+})();
+/* RULES:END */
+const checkVal = R.checkVal, specText = R.specText, gateOk = R.allOk;
+function lotEval(lot) { const p = productById(lot.productId); return Object.assign({ p }, R.evalTests(p ? p.tests : [], lot.results)); }
 function openHoldFor(kind, id) { return S.holds.find(h => isOpenHold(h) && h.link && h.link.kind === kind && h.link.id === id); }
-function releaseGate(lot) {
-  const ev = lotEval(lot); const out = [];
-  out.push({ ok: !!ev.p, txt: 'Product with spec limits selected' });
-  out.push({ ok: ev.p && !ev.missing.length, txt: ev.missing.length ? `Required tests entered — missing: ${ev.missing.map(r => r.t.name).join(', ')}` : 'All required tests entered' });
-  out.push({ ok: !ev.oos.length, txt: ev.oos.length ? `All results within spec — out of spec: ${ev.oos.map(r => r.t.name).join(', ')}` : 'All results within spec' });
-  out.push({ ok: !!(lot.review && lot.review.by && validDate(lot.review.date)), txt: 'Record-review sign-off (reviewer + date)' });
-  out.push({ ok: !!lot.releasedBy, txt: 'Released by recorded' });
-  const h = lot.id && openHoldFor('lot', lot.id);
-  out.push({ ok: !h, txt: h ? `No open hold — ${h.num} must be dispositioned in Holds & CAPA first` : 'No open hold on this lot' });
-  return out;
-}
+function releaseGate(lot) { return R.releaseChecks(lot, productById(lot.productId), { mode: MODE, openHold: lot.id && openHoldFor('lot', lot.id), userId: ME && ME.id, separate: CFG.separateRelease }); }
+function reviewGate(lot) { return R.reviewChecks(lot, productById(lot.productId), { openHold: lot.id && openHoldFor('lot', lot.id) }); }
 function loadEval(load) {
   const m = materialById(load.materialId);
   const coa = (m ? m.tests : []).map(t => ({ t, v: (load.coa || {})[t.key], st: checkVal(t, (load.coa || {})[t.key]) }));
   const internal = (m ? m.tests : []).map(t => ({ t, v: (load.internal || {})[t.key], st: checkVal(t, (load.internal || {})[t.key]) })).filter(r => r.st !== 'missing');
   return { m, coa, internal, coaOos: coa.filter(r => r.st === 'oos'), coaMissing: coa.filter(r => r.st === 'missing'), intOos: internal.filter(r => r.st === 'oos') };
 }
-function acceptGate(load) {
-  const ev = loadEval(load);
-  return [
-    { ok: !!ev.m, txt: 'Material with specification selected' },
-    { ok: !!load.coaReceived, txt: 'COA received' },
-    { ok: load.coaReceived && !ev.coaMissing.length, txt: ev.coaMissing.length ? `COA values entered — missing: ${ev.coaMissing.map(r => r.t.name).join(', ')}` : 'All COA values entered' },
-    { ok: !ev.coaOos.length, txt: ev.coaOos.length ? `COA within spec — outside: ${ev.coaOos.map(r => r.t.name).join(', ')}` : 'COA values within spec' },
-    { ok: !ev.intOos.length, txt: ev.intOos.length ? `Internal tests within spec — outside: ${ev.intOos.map(r => r.t.name).join(', ')}` : 'Internal test results within spec (where tested)' },
-  ];
-}
-function closureGate(c) {
-  const e = c.effectiveness || {};
-  const open = [...c.corrective, ...c.preventive].filter(a => !a.done);
-  return [
-    { ok: !!(c.rca && c.rca.rootCause), txt: 'Root-cause statement recorded' },
-    { ok: c.corrective.length > 0, txt: 'At least one corrective action' },
-    { ok: !open.length, txt: open.length ? `All actions complete — ${open.length} still open` : 'All corrective & preventive actions complete' },
-    { ok: !!(e.metric && validDate(e.date)), txt: 'Effectiveness check recorded (metric + check date)' },
-    { ok: e.result === 'Pass', txt: e.result === 'Fail' ? 'Effectiveness check result is Fail — revisit root cause' : 'Effectiveness check result = Pass' },
-  ];
-}
-const gateOk = g => g.every(x => x.ok);
+function acceptGate(load) { return R.acceptChecks(load, materialById(load.materialId)); }
+function closureGate(c) { return R.closureChecks(c); }
 function caseStep(c) {
   const e = c.effectiveness || {};
   return [
@@ -706,18 +754,26 @@ const VIEWS = {};
 const A = {};          // click actions, keyed by data-act
 let M = null;          // active modal {title, draft, body(draft), onSave(draft), extra, error}
 
-function route() { const r = (location.hash || '#home').slice(1).split('/')[0]; return VIEWS[r] ? r : 'home'; }
+const SERVER_ROUTES = [['trail','Audit Trail','viewer'], ['users','Users','admin']];
+function route() { const r = (location.hash || '#home').slice(1).split('/')[0]; const sr = SERVER_ROUTES.find(x => x[0] === r); if (sr && !(MODE === 'server' && can(sr[2]))) return 'home'; return VIEWS[r] ? r : 'home'; }
 function render() {
+  const authMode = MODE === 'server' && (!ME || !!AUTH);
+  document.body.classList.toggle('auth', authMode);
+  document.body.dataset.role = ME ? ME.role : 'local';
+  whoChip(); renderMenu();
+  if (authMode) { $('#tabs').innerHTML = ''; $('#main').innerHTML = authView(); const f = $('.authbox input'); if (f && !document.activeElement.closest('.authbox')) f.focus(); return; }
   const r = route();
   const badge = { capa: S.holds.filter(isOpenHold).length + overdueActions().filter(x => x.src === 'capa').length, compliance: S.compliance.filter(compOverdue).length };
-  $('#tabs').innerHTML = ROUTES.map(([k, n]) => `<a href="#${k}" class="${k === r ? 'on' : ''}" ${k === r ? 'aria-current="page"' : ''}>${n}${badge[k] ? `<span class="dot" aria-label="${badge[k]} need attention">${badge[k]}</span>` : ''}</a>`).join('');
+  const routes = MODE === 'server' ? [...ROUTES, ...SERVER_ROUTES.filter(x => can(x[2]))] : ROUTES;
+  $('#tabs').innerHTML = routes.map(([k, n]) => `<a href="#${k}" class="${k === r ? 'on' : ''}" ${k === r ? 'aria-current="page"' : ''}>${n}${badge[k] ? `<span class="dot" aria-label="${badge[k]} need attention">${badge[k]}</span>` : ''}</a>`).join('');
   const sampleCount = ['swabs','lots','loads','holds','cases','compliance'].reduce((n, k) => n + S[k].filter(x => x.sample).length, 0);
-  const banner = sampleCount ? `<div class="samplebar noprint"><span><b>SAMPLE DATA</b> — ${sampleCount} demonstration records are loaded and tagged <span class="sample">SAMPLE</span>. Sites, products and suppliers are fictional.</span><span class="btns"><button class="btn sm" data-act="clear-sample">Remove sample records</button></span></div>` : '';
+  const banner = (READONLY ? `<div class="offbar noprint" role="status"><b>Offline — read only.</b> Showing data as of ${LAST_SYNC ? LAST_SYNC.toLocaleString('en-US') : '—'}. Changes and signatures need a connection.</div>` : '') +
+    (sampleCount ? `<div class="samplebar noprint"><span><b>SAMPLE DATA</b> — ${sampleCount} demonstration records are loaded${MODE === 'server' ? ' on the server' : ''} and tagged <span class="sample">SAMPLE</span>. Sites, products and suppliers are fictional.</span>${MODE === 'local' ? '<span class="btns"><button class="btn sm" data-act="clear-sample">Remove sample records</button></span>' : can('admin') ? '<span class="btns"><button class="btn sm" data-act="server-remove-sample">Remove sample records</button></span>' : ''}</div>` : '');
   $('#main').innerHTML = banner + VIEWS[r]();
   drawCharts();
 }
 let PENDING = null;   // editor to open once a route change has rendered
-window.addEventListener('hashchange', () => { if (M) closeModal(); render(); window.scrollTo(0, 0); if (PENDING) { const f = PENDING; PENDING = null; f(); } });
+window.addEventListener('hashchange', () => { if (M) closeModal(); render(); window.scrollTo(0, 0); if (PENDING) { const f = PENDING; PENDING = null; f(); } else if (MODE === 'server') refreshState(); });
 
 function toast(msg, tone, action) {
   const el = document.createElement('div');
@@ -755,7 +811,7 @@ function drawModal(keepFocus) {
   const ae = document.activeElement; const fpath = ae && d.contains(ae) ? ae.getAttribute('data-b') : null;
   d.innerHTML = `<div class="mwrap"><div class="mhead"><h2 id="dlgTitle">${M.title}</h2><button class="btn sm ghost" data-act="modal-close" aria-label="Close">✕</button></div>
     <div class="mbody">${M.error ? `<div class="err" role="alert"><b>${esc(M.error.title)}</b><ul>${M.error.items.map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>` : ''}${M.body(M.draft)}</div>
-    <div class="mfoot">${M.extra ? `<span class="left btns">${M.extra(M.draft)}</span>` : ''}<button class="btn" data-act="modal-close">Cancel</button><button class="btn primary" data-act="modal-save">${M.saveLabel || 'Save'}</button></div></div>`;
+    <div class="mfoot">${M.extra ? `<span class="left btns">${M.extra(M.draft)}</span>` : ''}<button class="btn" data-act="modal-close">Cancel</button>${M.hist ? historyBtn(M.hist.coll, M.hist.id, M.hist.kind) : ''}<button class="btn primary ${M.saveLabel === 'Close' ? 'keep' : ''}" data-act="modal-save" ${M.busy ? 'disabled' : ''}>${M.busy ? 'Saving…' : (M.saveLabel || 'Save')}</button></div></div>`;
   const nb = $('.mbody', d); nb.scrollTop = top;
   if (M.error && !keepFocus) nb.scrollTop = 0;
   if (keepFocus && fpath) { const el = d.querySelector(`[data-b="${CSS.escape(fpath)}"]`); if (el) el.focus({ preventScroll: true }); }
@@ -787,7 +843,7 @@ function gateBox(title, items, okTitle) {
   return `<div class="gate ${ok ? 'ok' : 'no'}"><h4>${ok ? '✓ ' + esc(okTitle) : '✕ ' + esc(title)}</h4><ul>${items.map(i => `<li class="${i.ok ? 'y' : 'n'}"><span class="i" aria-hidden="true">${i.ok ? '✓' : '✕'}</span><span>${esc(i.txt)}<span class="sr">${i.ok ? ' — met' : ' — not met'}</span></span></li>`).join('')}</ul></div>`;
 }
 function datalist(id, values) { return `<datalist id="${id}">${[...new Set(values.filter(Boolean))].sort().map(v => `<option value="${esc(v)}">`).join('')}</datalist>`; }
-const people = () => [S.user, ...S.swabs.map(s => s.analyst), ...S.cases.map(c => c.owner), ...S.holds.map(h => h.placedBy), 'QA Manager'];
+const people = () => [S.user, ...USERS.filter(u => u.active).map(u => u.name), ...S.swabs.map(s => s.analyst), ...S.cases.map(c => c.owner), ...S.holds.map(h => h.placedBy), 'QA Manager'];
 
 /* ---------- global click delegation ---------- */
 document.addEventListener('click', e => {
@@ -801,7 +857,20 @@ document.addEventListener('click', e => {
   if (fn) { e.preventDefault(); $('#menuDd').hidden = true; fn(t.dataset, t); }
 });
 A['modal-close'] = () => closeModal();
-A['modal-save'] = () => { if (!M) return; const ok = M.onSave(M.draft); if (ok) { closeModal(); save(); render(); } else drawModal(); };
+A['modal-save'] = async () => {
+  if (!M || M.busy) return;
+  if (M.submitAsync) { M.busy = true; drawModal(); const ok = await M.submitAsync(M.draft); if (M && !ok) { M.busy = false; drawModal(); } return; }
+  const ok = M.onSave(M.draft);
+  if (!ok) { drawModal(); return; }
+  if (MODE === 'server') {
+    M.busy = true; drawModal();
+    const r = await commit();
+    if (!M) return;
+    M.busy = false;
+    if (!r.ok) { rebuildFromShadow(); AFTER.length = 0; M.error = { title:'Not saved', items:[r.error] }; drawModal(); render(); return; }
+  } else saveLocal();
+  closeModal(); render(); runAfter();
+};
 A['go'] = d => { location.hash = '#' + d.route; };
 
 /* ============================================================
@@ -835,16 +904,30 @@ VIEWS.home = () => {
   <div class="cols wide-left">
     <section class="panel"><div class="ph"><h2>Needs action</h2></div>${needsAction(od, openHolds, compOver)}</section>
     <section class="panel"><div class="ph"><h2>Recent activity</h2></div>
-      ${S.activity.length ? `<ul class="feed">${S.activity.slice(0, 14).map(a => `<li><span><span class="fm">${esc(modName(a.mod))}</span><br><span class="ft">${fmtDs(a.ts.slice(0, 10))}</span></span><span>${esc(a.text)}${SB(a)}</span></li>`).join('')}</ul>` : '<div class="empty">No activity yet.</div>'}
+      <div id="feed">${feedHtml()}</div>
     </section>
   </div>`;
 };
+function feedHtml() {
+  if (MODE === 'server') {
+    if (!FEED) { setTimeout(loadFeed, 0); return '<div class="empty">Loading activity…</div>'; }
+    return FEED.length ? `<ul class="feed">${FEED.map(e => `<li><span><span class="fm">${esc(modName(COLL_MOD[e.coll] || 'system'))}</span><br><span class="ft">${new Date(e.ts).toLocaleDateString('en-US', { month:'short', day:'numeric' })}</span></span><span>${esc(e.summary || `${e.action} ${e.coll || ''}`)} <span class="muted tiny">— ${esc(e.userName || 'system')}</span></span></li>`).join('')}</ul>` : '<div class="empty">No activity yet.</div>';
+  }
+  return S.activity.length ? `<ul class="feed">${S.activity.slice(0, 14).map(a => `<li><span><span class="fm">${esc(modName(a.mod))}</span><br><span class="ft">${fmtDs(a.ts.slice(0, 10))}</span></span><span>${esc(a.text)}${SB(a)}</span></li>`).join('')}</ul>` : '<div class="empty">No activity yet.</div>';
+}
+const COLL_MOD = { swabs:'em', emInv:'em', sites:'em', lots:'product', products:'product', releases:'product', loads:'incoming', materials:'incoming', holds:'capa', cases:'capa', compliance:'compliance' };
+let FEED_AT = 0;
+async function loadFeed() {
+  if (MODE !== 'server' || !ME || (FEED && Date.now() - FEED_AT < 5000)) return; FEED_AT = Date.now();
+  try { FEED = (await api('GET', '/audit?limit=14')).entries.filter(e => !['login','logout','login_failed'].includes(e.action)); } catch (e) { FEED = []; }
+  const el = $('#feed'); if (el) el.innerHTML = feedHtml();
+}
 function modName(m) { return { em:'Env. Mon.', product:'Product', incoming:'Incoming', capa:'Holds/CAPA', compliance:'Compliance', trending:'Trending', system:'System' }[m] || m; }
 function needsAction(od, holds, comp) {
   const rows = [];
   od.forEach(x => rows.push(`<div class="rec flag-crit"><div class="main"><div class="t">${pill('Overdue ' + plural(diffDays(x.a.due, today()), 'day'), 'crit', '✕')} ${esc(x.a.desc)}</div><div class="m">${esc(x.a.owner || '—')} · due ${fmtD(x.a.due)} · ${x.src === 'capa' ? esc(x.parent.num) : 'EM: ' + esc(x.parent.title)}</div></div><div class="acts"><button class="btn sm" data-act="open" data-kind="${x.src === 'capa' ? 'case' : 'inv'}" data-id="${x.parent.id}">Open</button></div></div>`));
   holds.forEach(h => rows.push(`<div class="rec flag-warn"><div class="main"><div class="t">${pill(plural(holdAging(h), 'day') + ' on hold', 'warn', '!')} ${esc(h.num)} · ${esc(h.ref)}${SB(h)}</div><div class="m">${esc(h.reason)}${h.caseId ? ' · ' + esc(caseById(h.caseId)?.num || '') : ' · no case opened'}</div></div><div class="acts"><button class="btn sm" data-act="open" data-kind="hold" data-id="${h.id}">Disposition</button></div></div>`));
-  S.lots.filter(l => l.status === 'Awaiting Review').forEach(l => rows.push(`<div class="rec"><div class="main"><div class="t">${st('Awaiting Review')} Lot ${esc(l.code)}${SB(l)}</div><div class="m">${esc(productById(l.productId)?.name || '')} — all tests in spec; needs record-review sign-off</div></div><div class="acts"><button class="btn sm" data-act="open" data-kind="lot" data-id="${l.id}">Review</button></div></div>`));
+  S.lots.filter(l => l.status === 'Awaiting Review').forEach(l => { const signed = l.review && l.review.sigId; rows.push(`<div class="rec"><div class="main"><div class="t">${signed ? pill('Review e-signed', 'good', '✓') : st('Awaiting Review')} Lot ${esc(l.code)}${SB(l)}</div><div class="m">${esc(productById(l.productId)?.name || '')} — ${signed ? `reviewed by ${esc(l.review.by)}; awaiting release signature` : 'all tests in spec; needs record-review sign-off'}</div></div><div class="acts"><button class="btn sm" data-act="open" data-kind="lot" data-id="${l.id}">${signed ? 'Release' : 'Review'}</button></div></div>`); });
   comp.forEach(c => rows.push(`<div class="rec"><div class="main"><div class="t">${pill(c.program, 'info')} ${esc(c.item)}${SB(c)}</div><div class="m">Assessment due ${fmtD(c.due)} · ${esc(c.status)}</div></div><div class="acts"><button class="btn sm" data-act="open" data-kind="comp" data-id="${c.id}">Open</button></div></div>`));
   return rows.length ? `<div class="list">${rows.join('')}</div>` : '<div class="empty">Nothing overdue. ✓</div>';
 }
@@ -888,6 +971,273 @@ function signals() {
   Object.entries(sup).forEach(([s, n]) => out.push({ tone:'warn', route:'incoming', title:`Supplier issue — ${s}`, detail:`${plural(n, 'load')} held or rejected in the last 60 days` }));
   const order = { crit:0, warn:1, good:2 };
   return out.sort((a, b) => order[a.tone] - order[b.tone]);
+}
+
+/* ============================================================
+   SERVER MODE — shared data, sign-in, e-signatures, audit trail.
+   Enabled when <meta name="qa-api"> (or the Data menu) points at the API.
+   With no API configured the app runs in local demo mode, unchanged.
+   ============================================================ */
+const API = (() => {
+  if (/[?&]demo\b/.test(location.search)) return '';
+  let u = (document.querySelector('meta[name="qa-api"]') || {}).content || '';
+  try { const o = localStorage.getItem('qaLabSuite.api'); if (o !== null) u = o; } catch (e) {}
+  return u.replace(/\/+$/, '');
+})();
+const MODE = API ? 'server' : 'local';
+const SYNC_COLLS = ['sites','swabs','emInv','products','lots','materials','loads','holds','cases','compliance','releases'];
+const TOKEN_KEY = 'qaLabSuite.token', CACHE_KEY = 'qaLabSuite.cache';
+let ME = null, CFG = { separateRelease: true, meanings: {} }, TOKEN = null;
+let SHADOW = {}, VERS = {}, SIGS = [], USERS = [], FEED = null;
+let READONLY = false, SYNCING = false, LAST_SYNC = null, AUTH = null;
+const PENDING_SUMMARIES = [];
+const AFTER = []; const afterSave = fn => AFTER.push(fn); const runAfter = () => AFTER.splice(0).forEach(f => setTimeout(f, 30));
+const ROLE_RANK = { viewer:0, tech:1, manager:2, admin:3 };
+const can = role => MODE === 'local' || (ME && ROLE_RANK[ME.role] >= ROLE_RANK[role]);
+
+class ApiError extends Error { constructor(status, data, network) { super((data && data.error) || (network ? 'Can’t reach the server — check your connection.' : 'Request failed')); this.status = status; this.data = data || {}; this.network = !!network; } }
+async function api(method, path, body) {
+  let r;
+  try { r = await fetch(API + path, { method, headers: Object.assign({ 'content-type':'application/json' }, TOKEN ? { authorization: 'Bearer ' + TOKEN } : {}), body: body ? JSON.stringify(body) : undefined, cache:'no-store' }); }
+  catch (e) { throw new ApiError(0, null, true); }
+  let data = {}; try { data = await r.json(); } catch (e) {}
+  if (r.status === 401 && path !== '/auth/login' && path !== '/sign' && path !== '/auth/password') { signedOut(data.error || 'Please sign in again.'); }
+  if (r.status === 403 && data.mustChange) { AUTH = { kind:'change' }; render(); }
+  if (!r.ok) throw new ApiError(r.status, data);
+  return data;
+}
+function signedOut(msg) {
+  ME = null; TOKEN = null; try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+  if (M) closeModal(); AUTH = { kind:'login', msg }; render();
+}
+
+/* ---- state sync ---- */
+function snapshot() { const s = {}; SYNC_COLLS.forEach(c => { s[c] = new Map((S[c] || []).map(r => [r.id, JSON.stringify(r)])); }); return s; }
+function rebuildFromShadow() { SYNC_COLLS.forEach(c => { S[c] = [...SHADOW[c].values()].map(j => JSON.parse(j)); }); }
+function computeSeq() {
+  const mx = (arr, re) => arr.reduce((m, r) => { const k = re.exec(r.num || ''); return k ? Math.max(m, Number(k[1])) : m; }, 0);
+  return { hold: mx(S.holds, /^H-(\d+)$/), capa: mx(S.cases, new RegExp('^CAPA-' + today().slice(0, 4) + '-(\\d+)$')) };
+}
+function applyState(st) {
+  const user = ME ? ME.name : 'QA Tech';
+  S = Object.assign(emptyState(), st.records, { user, sampleLoaded:false });
+  S.seq = computeSeq();
+  SHADOW = snapshot(); VERS = st.versions || {}; SIGS = st.signatures || []; USERS = st.users || [];
+  LAST_SYNC = new Date(); FEED = null;
+}
+async function loadServerState() {
+  const st = await api('GET', '/state');
+  applyState(st); READONLY = false;
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ api: API, at: LAST_SYNC.toISOString(), me: ME, cfg: CFG, st })); } catch (e) {}
+}
+function applyRecords(recs) {
+  (recs || []).forEach(r => {
+    const key = r.coll + '|' + r.id; if (!S[r.coll]) S[r.coll] = [];
+    if (r.deleted) { S[r.coll] = S[r.coll].filter(x => x.id !== r.id); SHADOW[r.coll].delete(r.id); delete VERS[key]; return; }
+    const i = S[r.coll].findIndex(x => x.id === r.id); if (i >= 0) S[r.coll][i] = r.data; else S[r.coll].push(r.data);
+    SHADOW[r.coll].set(r.id, JSON.stringify(r.data)); VERS[key] = r.version;
+  });
+  S.seq = computeSeq(); LAST_SYNC = new Date(); FEED = null;
+}
+function isLockedRec(coll, d) { return !!d && ((coll === 'lots' && d.status === 'Released') || (coll === 'cases' && d.status === 'Closed') || (coll === 'holds' && d.status !== 'On Hold') || (coll === 'loads' && ['Accept','Reject'].includes(d.decision))); }
+function diffChanges() {
+  const out = [];
+  SYNC_COLLS.filter(c => c !== 'releases').forEach(c => {
+    const seen = new Set();
+    (S[c] || []).forEach(r => { seen.add(r.id); const j = JSON.stringify(r); if (SHADOW[c].get(r.id) !== j) out.push({ op:'put', coll:c, id:r.id, data:r, baseVersion: VERS[c + '|' + r.id] ?? null }); });
+    SHADOW[c].forEach((j, id) => { if (!seen.has(id)) out.push({ op:'delete', coll:c, id, baseVersion: VERS[c + '|' + id] ?? null }); });
+  });
+  return out;
+}
+function askReason(what) {
+  const r = prompt(`Reason for change — required for ${what}. It is recorded in the audit trail with your name and the time.`);
+  return r && r.trim() ? r.trim() : '';
+}
+/* Push local changes to the server. Resolves {ok, error}. On failure the caller should rebuildFromShadow(). */
+async function commit() {
+  const changes = diffChanges();
+  if (!changes.length) { PENDING_SUMMARIES.length = 0; return { ok:true }; }
+  if (READONLY) return { ok:false, error:'You’re offline — changes can’t be saved until the connection is back.' };
+  let reason = '';
+  const needs = changes.some(c => c.op === 'delete' || isLockedRec(c.coll, SHADOW[c.coll].has(c.id) ? JSON.parse(SHADOW[c.coll].get(c.id)) : null));
+  if (needs) { reason = askReason(changes.some(c => c.op === 'delete') ? 'deleting a record' : 'changing a released, closed or dispositioned record'); if (!reason) return { ok:false, error:'Not saved — a reason for change is required.' }; }
+  SYNCING = true; whoChip();
+  try {
+    const summaries = PENDING_SUMMARIES.splice(0);
+    let r;
+    try { r = await api('POST', '/batch', { changes, reason, summaries }); }
+    catch (e) {
+      if (e.status === 428 && !reason) { reason = askReason('this change'); if (!reason) throw e; r = await api('POST', '/batch', { changes, reason, summaries }); }
+      else throw e;
+    }
+    applyRecords(r.records); cacheNow();
+    return { ok:true };
+  } catch (e) {
+    if (e.status === 409 && e.data.conflict) { try { await loadServerState(); } catch (x) {} }
+    return { ok:false, error: e.message };
+  } finally { SYNCING = false; whoChip(); }
+}
+function cacheNow() { try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); if (c && c.api === API) { const records = {}; SYNC_COLLS.forEach(k => records[k] = S[k]); c.st = { records, versions: VERS, signatures: SIGS, users: USERS }; c.at = new Date().toISOString(); localStorage.setItem(CACHE_KEY, JSON.stringify(c)); } } catch (e) {} }
+async function refreshState(force) {
+  if (MODE !== 'server' || !ME || READONLY && !force) return;
+  if (!force && (M || SYNCING || document.hidden)) return;
+  try { await loadServerState(); if (!M) render(); }
+  catch (e) { if (e.network) { READONLY = true; render(); } }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshState(); });
+window.addEventListener('focus', () => refreshState());
+window.addEventListener('online', () => { if (MODE === 'server') boot(); });
+setInterval(() => refreshState(), 45000);
+
+function whoChip() {
+  const el = $('#who'); if (!el) return;
+  if (MODE !== 'server' || !ME) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = `<b>${esc(ME.name)}</b> · ${esc(ME.role)}<br><span class="tiny ${READONLY ? 'warnt' : ''}">${READONLY ? 'Offline — read only' : SYNCING ? 'Saving…' : LAST_SYNC ? 'Synced ' + LAST_SYNC.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' }) : ''}</span>`;
+}
+
+/* ---- sign-in screens ---- */
+function authView() {
+  const a = AUTH || { kind:'login' };
+  const msg = a.msg ? `<div class="err" role="alert">${esc(a.msg)}</div>` : '';
+  if (a.kind === 'setup') return `<section class="panel authbox"><h1>First-time setup</h1><p class="small muted">Create the first administrator. You’ll need the setup token configured on the server.</p>${msg}
+    <div class="form"><label class="fld"><span>Setup token</span><input id="au-token" type="password" autocomplete="off"></label>
+    <label class="fld"><span>Your full name (printed on your e-signatures)</span><input id="au-name" autocomplete="name"></label>
+    <label class="fld"><span>Email</span><input id="au-email" type="email" autocomplete="username"></label>
+    <label class="fld"><span>Password (${a.minPassword || 10}+ characters)</span><input id="au-pw" type="password" autocomplete="new-password"></label>
+    <label class="fld"><span>Confirm password</span><input id="au-pw2" type="password" autocomplete="new-password"></label>
+    <button class="btn primary" data-act="auth-setup">Create administrator</button></div></section>`;
+  if (a.kind === 'change') return `<section class="panel authbox"><h1>Set a new password</h1><p class="small muted">${ME && ME.mustChange ? 'Your account was set up with a temporary password. Choose your own before continuing — only you should know it, because it is also your e-signature.' : 'Change your password.'}</p>${msg}
+    <div class="form"><label class="fld"><span>Current password</span><input id="au-cur" type="password" autocomplete="current-password"></label>
+    <label class="fld"><span>New password (10+ characters)</span><input id="au-pw" type="password" autocomplete="new-password"></label>
+    <label class="fld"><span>Confirm new password</span><input id="au-pw2" type="password" autocomplete="new-password"></label>
+    <div class="btns"><button class="btn primary" data-act="auth-change">Save password</button>${ME && !ME.mustChange ? '<button class="btn" data-act="auth-cancel">Cancel</button>' : '<button class="btn" data-act="sign-out">Sign out</button>'}</div></div></section>`;
+  return `<section class="panel authbox"><h1>Sign in</h1><p class="small muted">QA Lab Suite — shared records with electronic signatures and an audit trail.</p>${msg}
+    <form class="form" onsubmit="return false"><label class="fld"><span>Email</span><input id="au-email" type="email" autocomplete="username"></label>
+    <label class="fld"><span>Password</span><input id="au-pw" type="password" autocomplete="current-password"></label>
+    <button class="btn primary" data-act="auth-login" type="submit">Sign in</button></form>
+    <p class="tiny muted" style="margin-top:14px">Accounts are created by your administrator. <a href="?demo">Try the demo instead</a> (sample data, this browser only).</p></section>`;
+}
+const val = id => ($('#' + id) || {}).value || '';
+async function afterSignIn(r) {
+  TOKEN = r.token; try { localStorage.setItem(TOKEN_KEY, TOKEN); } catch (e) {}
+  const me = await api('GET', '/auth/me'); ME = me.user; CFG = me.config || CFG;
+  if (ME.mustChange) { AUTH = { kind:'change' }; render(); return; }
+  AUTH = null; await loadServerState(); render();
+}
+A['auth-login'] = async () => {
+  try { await afterSignIn(await api('POST', '/auth/login', { email: val('au-email'), password: val('au-pw') })); }
+  catch (e) { AUTH = { kind:'login', msg: e.message }; render(); }
+};
+A['auth-setup'] = async () => {
+  if (val('au-pw') !== val('au-pw2')) { AUTH = Object.assign({}, AUTH, { msg:'Passwords don’t match.' }); render(); return; }
+  try { await afterSignIn(await api('POST', '/auth/setup', { setupToken: val('au-token'), name: val('au-name'), email: val('au-email'), password: val('au-pw') })); toast('Administrator created. Next: add your team under Users.'); }
+  catch (e) { AUTH = Object.assign({}, AUTH, { msg: e.message }); render(); }
+};
+A['auth-change'] = async () => {
+  if (val('au-pw') !== val('au-pw2')) { AUTH = { kind:'change', msg:'New passwords don’t match.' }; render(); return; }
+  try { await api('POST', '/auth/password', { current: val('au-cur'), password: val('au-pw') }); ME.mustChange = false; AUTH = null; await loadServerState(); render(); toast('Password changed.'); }
+  catch (e) { AUTH = { kind:'change', msg: e.message }; render(); }
+};
+A['auth-cancel'] = () => { AUTH = null; render(); };
+A['change-password'] = () => { AUTH = { kind:'change' }; render(); };
+A['sign-out'] = async () => { try { await api('POST', '/auth/logout'); } catch (e) {} signedOut('You have signed out.'); };
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.closest && e.target.closest('.authbox')) { const b = $('.authbox .btn.primary'); if (b) { e.preventDefault(); b.click(); } } });
+
+/* ---- electronic signatures ---- */
+function sigById(id) { return SIGS.find(s => s.id === id); }
+function fmtTs(ts) { return ts ? new Date(ts).toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit', timeZoneName:'short' }) : '—'; }
+function sigLine(label, sigId, name, fallbackDate) {
+  const s = sigId && sigById(sigId);
+  if (s) return `<div class="sigline ok"><span class="i" aria-hidden="true">✓</span><span><b>${esc(label)}</b> — e-signed by <b>${esc(s.userName)}</b> (${esc(s.userEmail)}) · ${esc(fmtTs(s.ts))}<br><span class="tiny muted">${esc(s.statement)}</span></span></div>`;
+  if (name) return `<div class="sigline"><span class="i" aria-hidden="true">•</span><span><b>${esc(label)}</b> — ${esc(name)}${fallbackDate ? ', ' + esc(fmtD(fallbackDate)) : ''} <span class="tiny muted">(typed name, not e-signed — SAMPLE or legacy record)</span></span></div>`;
+  return '';
+}
+/* Save any open edits to this record, then ask for the password and apply the signature on the server. */
+async function eSign(coll, id, meaning) {
+  if (M && M.draft && M.draft.id === id && M.onSave) {
+    const ok = M.onSave(M.draft); if (!ok) { drawModal(); return; }
+    const r = await commit();
+    if (!r.ok) { rebuildFromShadow(); render(); if (M) { M.error = { title:'Not saved', items:[r.error] }; drawModal(); } return; }
+    runAfter(); render();
+  }
+  const rec = (S[coll] || []).find(x => x.id === id); if (!rec) return;
+  const mn = (CFG.meanings || {})[meaning] || { label: meaning, statement: '' };
+  const kind = coll === 'lots' ? 'lot' : 'case';
+  const label = coll === 'lots' ? `Lot ${rec.code} — ${productById(rec.productId)?.name || ''}` : `${rec.num} — ${rec.title}`;
+  openModal({ title: 'Electronic signature — ' + esc(mn.label), draft: { password:'' }, saveLabel: 'Sign',
+    body: () => `<div class="sigbox"><div class="tiny muted">Record</div><div><b>${esc(label)}</b> · version ${VERS[coll + '|' + id] ?? '—'}</div>
+      <div class="tiny muted" style="margin-top:10px">Meaning of this signature</div><div class="meaning">${esc(mn.statement)}</div>
+      <div class="tiny muted" style="margin-top:10px">Signer</div><div><b>${esc(ME.name)}</b> (${esc(ME.email)}) · ${esc(ME.role)}</div></div>
+      <label class="fld" style="margin-top:12px"><span>Re-enter your password to sign</span><input type="password" data-b="password" autocomplete="current-password"></label>
+      <p class="tiny muted">Your signature is recorded with your printed name, the server date and time, and its meaning, and is permanently linked to this version of the record. Applying it is the equivalent of your handwritten signature.</p>`,
+    extra: () => `<button class="btn" data-act="open" data-kind="${kind}" data-id="${esc(id)}">Back to record</button>`,
+    onSave: () => false,
+    submitAsync: async d => {
+      try {
+        const r = await api('POST', '/sign', { meaning, id, version: VERS[coll + '|' + id], password: d.password, tzOffset: new Date().getTimezoneOffset() });
+        SIGS.push(r.signature); applyRecords(r.records); cacheNow();
+        closeModal(); render(); toast(`${mn.label} — signed by ${ME.name}.`);
+        setTimeout(() => openRecord(kind, id), 50);
+        return true;
+      } catch (e) {
+        if (e.status === 409 && e.data.conflict) { try { await loadServerState(); } catch (x) {} render(); }
+        M.error = { title: e.data.badPassword ? 'Signature not applied' : 'Signature blocked', items:[e.message] }; M.draft.password = ''; return false;
+      }
+    } });
+}
+A['esign'] = d => eSign(d.coll, d.id, d.meaning);
+
+/* ---- record history (audit trail for one record) ---- */
+function flatten(o, p = '', out = {}) {
+  if (o && typeof o === 'object') { const keys = Object.keys(o); if (!keys.length) out[p] = Array.isArray(o) ? '[]' : '{}'; keys.forEach(k => flatten(o[k], p ? p + '.' + k : k, out)); }
+  else out[p] = o; return out;
+}
+function diffLines(before, after) {
+  const a = flatten(before || {}), b = flatten(after || {}); const keys = [...new Set([...Object.keys(a), ...Object.keys(b)])].sort();
+  return keys.filter(k => String(a[k] ?? '') !== String(b[k] ?? '')).map(k => ({ k, from: a[k], to: b[k] }));
+}
+async function showHistory(coll, id, kind) {
+  let entries;
+  try { entries = (await api('GET', `/audit?coll=${encodeURIComponent(coll)}&id=${encodeURIComponent(id)}&limit=200`)).entries; }
+  catch (e) { toast(e.message, 'crit'); return; }
+  const sigs = SIGS.filter(s => s.coll === coll && s.recordId === id);
+  openModal({ title: 'Record history', draft: {}, saveLabel: 'Close',
+    body: () => `${sigs.length ? `<h3 style="margin-bottom:6px">Electronic signatures</h3><div class="list">${sigs.map(s => `<div class="sigline ok"><span class="i">✓</span><span><b>${esc((CFG.meanings[s.meaning] || {}).label || s.meaning)}</b> — ${esc(s.userName)} (${esc(s.userEmail)}) · ${esc(fmtTs(s.ts))} · record v${s.recordVersion}<br><span class="tiny muted">${esc(s.statement)} · content SHA-256 ${esc(s.contentHash.slice(0, 16))}…</span></span></div>`).join('')}</div>` : ''}
+      <h3 style="margin:12px 0 6px">Audit trail <span class="tiny muted" style="font-weight:400">— computer-generated, newest first, cannot be edited</span></h3>
+      ${entries.length ? `<ol class="trail">${entries.map(e => { const d = e.action === 'sign' ? [] : diffLines(e.before, e.after).filter(x => !/^(sample)$/.test(x.k)).slice(0, 25);
+        return `<li><div><b>${esc(e.action)}</b> · v${e.version ?? '—'} · ${esc(e.userName || 'system')} · <span class="muted">${esc(fmtTs(e.ts))}</span></div>
+          ${e.summary ? `<div class="small">${esc(e.summary)}</div>` : ''}${e.reason ? `<div class="small"><b>Reason:</b> ${esc(e.reason)}</div>` : ''}
+          ${d.length && e.before ? `<div class="tw"><table class="tbl"><tbody>${d.map(x => `<tr><td class="tiny">${esc(x.k)}</td><td class="tiny"><s class="muted">${esc(x.from ?? '')}</s></td><td class="tiny">${esc(x.to ?? '(removed)')}</td></tr>`).join('')}</tbody></table></div>` : ''}</li>`; }).join('')}</ol>` : '<div class="empty">No history yet.</div>'}`,
+    extra: () => kind ? `<button class="btn" data-act="open" data-kind="${kind}" data-id="${esc(id)}">Back to record</button>` : '',
+    onSave: () => true });
+}
+A['history'] = d => showHistory(d.coll, d.id, d.kind);
+function historyBtn(coll, id, kind) { return MODE === 'server' && VERS[coll + '|' + id] ? `<button class="btn" data-act="history" data-coll="${coll}" data-id="${esc(id)}" data-kind="${kind}">History</button>` : ''; }
+
+/* ---- boot ---- */
+async function boot() {
+  if (MODE === 'local') { loadState(); render(); return; }
+  document.body.classList.add('server-mode');
+  S = emptyState();
+  try { TOKEN = localStorage.getItem(TOKEN_KEY); } catch (e) {}
+  if (!TOKEN) { await showSignIn(); return; }
+  try {
+    const me = await api('GET', '/auth/me'); ME = me.user; CFG = me.config || CFG;
+    if (ME.mustChange) { AUTH = { kind:'change' }; render(); return; }
+    await loadServerState(); AUTH = null; render();
+  } catch (e) {
+    if (e.network) {
+      let c = null; try { c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); } catch (x) {}
+      if (c && c.api === API && c.me) { ME = c.me; CFG = c.cfg || CFG; applyState(c.st); LAST_SYNC = new Date(c.at); READONLY = true; render(); return; }
+      AUTH = { kind:'login', msg: e.message }; render();
+    } else if (!ME) await showSignIn(e.status === 401 ? (e.message) : e.message);
+  }
+}
+async function showSignIn(msg) {
+  try { const st = await api('GET', '/auth/status'); AUTH = st.needsSetup ? { kind:'setup', msg, minPassword: st.minPassword } : { kind:'login', msg }; }
+  catch (e) { AUTH = { kind:'login', msg: e.message }; }
+  render();
 }
 
 /* ============================================================
@@ -975,7 +1325,7 @@ function swabEditor(s, isNew) {
       log('em', `${site.name} — ${d.type} ${isPathogen(d.type) ? (d.result === 'Fail' ? 'positive' : 'negative') : d.result.toLowerCase() + ' (' + d.value + ' RLU)'}`);
       if (d.result === 'Fail' && !d.caseId) {
         const elig = swabCaseEligible(d);
-        setTimeout(() => toast(elig ? `${Number(site.zone) === 1 ? 'Zone 1 failure' : 'Repeat positive'} at ${site.name}.` : `Failure recorded at ${site.name}.`, 'crit', elig ? { label:'Open CAPA case', fn: () => caseFrom('swab', d.id) } : null), 50);
+        afterSave(() => toast(elig ? `${Number(site.zone) === 1 ? 'Zone 1 failure' : 'Repeat positive'} at ${site.name}.` : `Failure recorded at ${site.name}.`, 'crit', elig ? { label:'Open CAPA case', fn: () => caseFrom('swab', d.id) } : null));
       }
       return true;
     } });
@@ -1049,7 +1399,7 @@ VIEWS.product = () => {
   <div class="cols wide-left">
   <section class="panel"><div class="ph"><div><h2>Release history</h2><p>Who released what, when, on what data.</p></div></div>
     ${rel.length ? `<div class="tw"><table class="tbl"><thead><tr><th>Released</th><th>Lot</th><th>Product</th><th>Released by</th><th>Reviewed by</th><th>Data at release</th></tr></thead><tbody>
-      ${rel.slice(0, 40).map(r => `<tr><td>${fmtD(r.date)}</td><td><b>${esc(r.code)}</b>${SB(r)}</td><td>${esc(r.product)}</td><td>${esc(r.by)}</td><td>${esc(r.reviewer)}</td><td class="tiny">${esc(r.data)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">No releases yet.</div>'}
+      ${rel.slice(0, 40).map(r => `<tr><td>${fmtD(r.date)}</td><td><b>${esc(r.code)}</b>${SB(r)}</td><td>${esc(r.product)}</td><td>${esc(r.by)}${r.releaseSig ? ' <span class="tiny" title="Electronically signed">✓e-sig</span>' : ''}</td><td>${esc(r.reviewer)}${r.reviewSig ? ' <span class="tiny" title="Electronically signed">✓e-sig</span>' : ''}</td><td class="tiny">${esc(r.data)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">No releases yet.</div>'}
   </section>
   <section class="panel"><div class="ph"><div><h2>Products & spec limits</h2><p>Tests and limits each lot is checked against.</p></div></div>
     <div class="list">${S.products.map(p => `<div class="rec"><div class="main"><div class="t">${esc(p.name)}${SB(p)}</div><div class="m">${p.tests.map(t => `${esc(t.name)}: ${esc(specText(t))}${t.req ? '' : ' (optional)'}`).join(' · ')}</div></div><div class="acts"><button class="btn sm" data-act="open" data-kind="product" data-id="${p.id}">Edit spec</button></div></div>`).join('') || '<div class="empty">No products — add a product spec first.</div>'}</div>
@@ -1062,7 +1412,7 @@ function lotChips(l) {
 function lotRow(l) {
   const p = productById(l.productId); const c = l.caseId && caseById(l.caseId); const h = openHoldFor('lot', l.id);
   const tone = l.status === 'On Hold' ? 'flag-crit' : l.status === 'Awaiting Review' ? 'flag-warn' : l.status === 'Released' ? 'flag-good' : '';
-  return `<div class="rec ${tone}"><div class="main"><div class="t">Lot ${esc(l.code)} ${st(l.status)}${SB(l)}</div>
+  return `<div class="rec ${tone}"><div class="main"><div class="t">Lot ${esc(l.code)} ${st(l.status)}${l.review?.sigId && l.status !== 'Released' ? pill('Review e-signed', 'good', '✓') : ''}${SB(l)}</div>
     <div class="m">${esc(p?.name || 'Unknown product')} · ${fmtD(l.date)}${l.status === 'Released' ? ` · released by ${esc(l.releasedBy)}, reviewed by ${esc(l.review?.by)}` : ''}${h ? ` · ${esc(h.num)} open ${plural(holdAging(h), 'day')}` : ''}</div>${lotChips(l)}</div>
     <div class="acts">${c ? `<button class="btn sm" data-act="open" data-kind="case" data-id="${c.id}">${esc(c.num)} ↗</button>` : (l.status === 'On Hold' ? `<button class="btn sm warn" data-act="case-from" data-kind="lot" data-id="${l.id}">Open CAPA case</button>` : '')}
     <button class="btn sm ${l.status === 'Awaiting Review' ? 'primary' : ''}" data-act="open" data-kind="lot" data-id="${l.id}">${l.status === 'Awaiting Review' ? 'Review & release' : 'Open'}</button></div></div>`;
@@ -1079,7 +1429,7 @@ function lotEditor(lot, isNew) {
         ${F.sel('Product', 'productId', d, [['', '— choose —'], ...S.products.map(x => [x.id, x.name])], { rr:true })}
         ${F.date('Production date', 'date', d, { rr:true })}
         ${F.text('Lot code', 'code', d, { hint: p && validDate(d.date) ? `Suggested: <button type="button" class="btn sm ghost" data-act="lot-code">${esc(lotCodeFor(p.prefix || 'LOT', d.date))}</button>` : '' })}
-        ${F.sel('Status', 'status', d, LOT_STATUSES, { rr:true, hint:'Out-of-spec results force <b>On Hold</b>. <b>Released</b> is only accepted when the release gate passes.' })}
+        ${F.sel('Status', 'status', d, MODE === 'server' && !wasReleased ? LOT_STATUSES.filter(x => x !== 'Released') : LOT_STATUSES, { rr:true, hint: MODE === 'server' ? 'Out-of-spec results force <b>On Hold</b>. <b>Released</b> is set only by the release e-signature below.' : 'Out-of-spec results force <b>On Hold</b>. <b>Released</b> is only accepted when the release gate passes.' })}
       </div>
       <div class="sec"><h3>Test results ${p ? '<span class="tiny muted" style="font-weight:400">— checked live against spec</span>' : ''}</h3>
       ${p ? `<div class="trow lab" style="border:0;padding-bottom:0"><span class="tiny muted">Test · spec</span><span class="tiny muted">In-house</span><span class="tiny muted">Outside lab (optional)</span><span></span></div>
@@ -1090,16 +1440,37 @@ function lotEditor(lot, isNew) {
         ${F.area('Sensory notes', 'sensoryNotes', d, { ph:'appearance, aroma, flavor, texture' })}` : '<div class="empty">Choose a product to load its tests and spec limits.</div>'}
       ${ev.oos.length ? `<div class="err" style="margin-top:10px"><b>Out of specification:</b> ${ev.oos.map(r => esc(r.t.name)).join(', ')}. Saving will place this lot <b>On Hold</b> and log a hold record.</div>` : ''}
       </div>
-      <div class="sec"><h3>Record review & release</h3><div class="form two">
+      ${MODE === 'server' ? lotSignSection(d) : `<div class="sec"><h3>Record review & release</h3><div class="form two">
         ${F.text('Reviewed by', 'review.by', d, { list:'dl-people', rr:true })}${F.date('Review date', 'review.date', d, { rr:true })}
         ${F.text('Released by', 'releasedBy', d, { list:'dl-people', rr:true })}
         ${F.area('Notes', 'notes', d)}</div>
         ${gateBox('Release gate — not yet releasable', gate, 'Release gate passed — lot can be saved as Released')}
-      </div>${datalist('dl-people', people())}`;
+      </div>`}${datalist('dl-people', people())}`;
     },
     extra: d => `${d.status === 'On Hold' && !d.caseId && !isNew ? `<button class="btn warn" data-act="case-from" data-kind="lot" data-id="${d.id}">Open CAPA case</button>` : ''}${isNew ? '' : `<button class="btn danger" data-act="del" data-kind="lot" data-id="${d.id}">Delete</button>`}`,
     onSave: d => commitLot(d, isNew, wasReleased),
   });
+}
+/* Server mode: review and release are electronic signatures, not typed names. */
+function lotSignSection(d) {
+  const stored = lotById(d.id); const dirty = !stored || JSON.stringify(stored) !== JSON.stringify(d);
+  const contentDirty = !stored || R.lotSignedContent(stored) !== R.lotSignedContent(d);
+  const rv = d.review || {};
+  let h = `<div class="sec"><h3>Record review & release ${pill('E-signatures', 'info')}</h3>${F.area('Notes', 'notes', d)}`;
+  h += sigLine('Reviewed', rv.sigId, rv.sigId ? '' : rv.by, rv.date);
+  h += sigLine('Released', d.releaseSig, d.releaseSig ? '' : (d.status === 'Released' ? d.releasedBy : ''), '');
+  if (d.status !== 'Released') {
+    if (!rv.sigId || contentDirty) {
+      const g = reviewGate(d);
+      h += gateBox('Review signature — not yet available', g, 'Ready for the record-review signature');
+      h += `<div class="btns" style="margin-top:8px;align-items:center"><button class="btn primary" data-act="esign" data-coll="lots" data-id="${esc(d.id)}" data-meaning="lot.review" ${gateOk(g) && can('tech') && !READONLY ? '' : 'disabled'}>${dirty ? 'Save & e-sign review' : 'E-sign review'}</button>${rv.sigId && contentDirty ? '<span class="tiny muted">Saving changed results voids the existing review signature.</span>' : ''}</div>`;
+    } else {
+      const g = releaseGate(d);
+      h += gateBox('Release gate — not yet releasable', g, 'Release gate passed — ready for the release signature');
+      h += `<div class="btns" style="margin-top:8px;align-items:center"><button class="btn primary" data-act="esign" data-coll="lots" data-id="${esc(d.id)}" data-meaning="lot.release" ${gateOk(g) && can('manager') && !READONLY ? '' : 'disabled'}>${dirty ? 'Save & e-sign release' : 'E-sign release'}</button>${!can('manager') ? '<span class="tiny muted">Release needs the manager role.</span>' : ''}</div>`;
+    }
+  }
+  return h + '</div>';
 }
 A['lot-code'] = () => { const p = productById(M.draft.productId); if (p) { M.draft.code = lotCodeFor(p.prefix || 'LOT', M.draft.date); drawModal(); } };
 
@@ -1113,7 +1484,9 @@ function commitLot(d, isNew, wasReleased) {
   if (errs.length) { M.error = { title:'Can’t save yet', items: errs }; return false; }
   const ev = lotEval(d);
   let autoHeld = false;
-  if (d.status === 'Released') {
+  if (d.status === 'Released' && MODE === 'server') {
+    if (!wasReleased) { M.error = { title:'Release blocked', items:['A lot is released only with the release e-signature.'] }; return false; }
+  } else if (d.status === 'Released') {
     const g = releaseGate(d);
     if (!gateOk(g)) { M.error = { title:'Release blocked — the release gate is not met', items: g.filter(x => !x.ok).map(x => x.txt) }; return false; }
   } else if (ev.oos.length && d.status !== 'Rejected') {
@@ -1127,12 +1500,12 @@ function commitLot(d, isNew, wasReleased) {
       placed: today(), placedBy: S.user, status:'On Hold', disposition:'', dispDate:'', caseId: d.caseId || '' });
     log('capa', `Hold placed on lot ${d.code}${ev.oos.length ? ' — out of spec: ' + ev.oos.map(r => r.t.name).join(', ') : ''}`);
   }
-  if (d.status === 'Released' && !wasReleased) {
+  if (d.status === 'Released' && !wasReleased && MODE === 'local') {
     S.releases.push({ id: uid('rel'), lotId: d.id, code: d.code, product: p.name, date: today(), by: d.releasedBy, reviewer: d.review.by,
       data: p.tests.map(t => `${t.name} ${t.type === 'pf' ? (d.results[t.key] || '—') : fmtNum(d.results[t.key], t.dp)}`).join('; ') });
     log('product', `Lot ${d.code} ${p.name} released by ${d.releasedBy} (reviewed by ${d.review.by})`);
   } else log('product', `Lot ${d.code} ${isNew ? 'entered' : 'updated'} — ${d.status}`);
-  if (autoHeld || (d.status === 'On Hold' && !d.caseId && ev.oos.length)) setTimeout(() => toast(`Lot ${d.code} is out of spec and was placed On Hold.`, 'crit', d.caseId ? null : { label:'Open CAPA case', fn: () => caseFrom('lot', d.id) }), 50);
+  if (autoHeld || (d.status === 'On Hold' && !d.caseId && ev.oos.length)) afterSave(() => toast(`Lot ${d.code} is out of spec and was placed On Hold.`, 'crit', d.caseId ? null : { label:'Open CAPA case', fn: () => caseFrom('lot', d.id) }));
   return true;
 }
 A['new-lot'] = () => {
@@ -1277,7 +1650,7 @@ function commitLoad(d, isNew) {
   }
   if (d.decision === 'Reject') { const h = openHoldFor('load', d.id); if (h) { h.status = 'Returned to Supplier'; h.disposition = 'Load rejected at receiving: ' + d.reason; h.dispDate = today(); } }
   log('incoming', `Load ${d.supplierLot} ${m.name} from ${d.supplier} — ${d.decision}${d.reason ? ': ' + d.reason : ''}`);
-  if (d.decision === 'Hold' && !d.caseId) setTimeout(() => toast(`Load ${d.supplierLot} placed on Hold.`, 'crit', { label:'Open CAPA case', fn: () => caseFrom('load', d.id) }), 50);
+  if (d.decision === 'Hold' && !d.caseId) afterSave(() => toast(`Load ${d.supplierLot} placed on Hold.`, 'crit', { label:'Open CAPA case', fn: () => caseFrom('load', d.id) }));
   return true;
 }
 A['new-load'] = () => loadEditor({ id: uid('ld'), supplier:'', materialId: S.materials[0]?.id || '', supplierLot:'', received: today(), coaReceived:false, coa:{}, internal:{}, decision:'Pending', reason:'', decidedBy:'', caseId:'', notes:'' }, true);
@@ -1340,7 +1713,8 @@ function holdEditor(h, isNew) {
       ${d.link && d.link.id ? `<div class="fld full"><span>Linked record</span>${linkBtn(d.link)}</div>` : ''}
       </div>
       <div class="sec"><h3>Disposition</h3><div class="form two">
-      ${F.sel('Status', 'status', d, HOLD_STATUSES, { rr:true, hint: isOpenHold(d) ? `On hold ${plural(holdAging(d), 'day')}` : '' })}
+      ${F.sel('Status', 'status', d, HOLD_STATUSES, { rr:true, hint: (isOpenHold(d) ? `On hold ${plural(holdAging(d), 'day')}. ` : '') + (MODE === 'server' && !can('manager') ? 'Dispositioning a hold needs the manager role.' : '') })}
+      ${MODE === 'server' && d.dispositionedBy ? `<div class="fld full"><span>Dispositioned by</span>${esc(d.dispositionedBy)} (signed-in user, from the audit trail)</div>` : ''}
       ${F.date('Disposition date', 'dispDate', d)}
       ${F.area('Disposition notes / justification', 'disposition', d, { ph:'e.g. retest in spec on outside lab; released by QA Manager' })}
       </div>${d.link && d.link.kind === 'lot' && d.status === 'Released' ? '<div class="tiny muted" style="margin-top:6px">Releasing the hold does not release the lot — the lot still has to pass its release gate in Product & Release.</div>' : ''}
@@ -1376,7 +1750,7 @@ function caseEditor(c, isNew) {
       const g = closureGate(d);
       return `${stepper(d)}
       <div class="form two" style="margin-top:12px">${F.text('Title', 'title', d, { full:true })}
-        ${F.sel('Severity', 'severity', d, SEVERITIES)}${F.sel('Status', 'status', d, CASE_STATUSES, { rr:true, hint:'<b>Closed</b> is accepted only after a <b>Pass</b> effectiveness check.' })}
+        ${F.sel('Severity', 'severity', d, SEVERITIES)}${F.sel('Status', 'status', d, MODE === 'server' && c.status !== 'Closed' ? CASE_STATUSES.filter(x => x !== 'Closed') : CASE_STATUSES, { rr:true, hint: MODE === 'server' ? '<b>Closed</b> is set only by the closure e-signature (section 6).' : '<b>Closed</b> is accepted only after a <b>Pass</b> effectiveness check.' })}
         ${F.text('Owner', 'owner', d, { list:'dl-people' })}${F.date('Opened', 'opened', d)}
         ${d.source && d.source.kind !== 'manual' ? `<div class="fld full"><span>Source</span>${d.source.id ? linkBtn(d.source) : esc(linkLabel(d.source))}</div>` : ''}
         ${S.holds.filter(h => h.caseId === d.id).length ? `<div class="fld full"><span>Linked holds</span><div class="btns">${S.holds.filter(h => h.caseId === d.id).map(h => `<button class="btn sm ghost" data-act="open" data-kind="hold" data-id="${h.id}">${esc(h.num)} · ${esc(h.status)} ↗</button>`).join('')}</div></div>` : ''}
@@ -1394,7 +1768,7 @@ function caseEditor(c, isNew) {
         ${F.text('Metric / evidence of effectiveness', 'effectiveness.metric', d, { full:true, ph:'e.g. 3 consecutive negative swabs at site and vectors', rr:true })}
         ${F.date('Check date', 'effectiveness.date', d, { rr:true })}${F.sel('Result', 'effectiveness.result', d, [['', 'Not yet checked'], 'Pass', 'Fail'], { rr:true })}
         ${F.area('Notes / data reviewed', 'effectiveness.notes', d)}</div></div>
-      <div class="sec"><h3>6 · Closure</h3>${gateBox('Closure gate — case cannot be closed yet', g, 'Closure gate passed — case can be saved as Closed')}</div>
+      <div class="sec"><h3>6 · Closure</h3>${MODE === 'server' ? caseSignSection(d, g) : gateBox('Closure gate — case cannot be closed yet', g, 'Closure gate passed — case can be saved as Closed')}</div>
       ${datalist('dl-people', people())}`;
     },
     extra: d => isNew ? '' : `<button class="btn danger" data-act="del" data-kind="case" data-id="${d.id}">Delete</button>`,
@@ -1403,6 +1777,12 @@ function caseEditor(c, isNew) {
 }
 A['fish'] = (ds, el) => { const cats = M.draft.rca.cats; const f = ds.f; const i = cats.indexOf(f); if (i >= 0) cats.splice(i, 1); else cats.push(f); drawModal(); };
 
+function caseSignSection(d, g) {
+  if (d.status === 'Closed') return sigLine('Approved closure', d.closeSig, d.closeSig ? '' : (d.closedBy || 'Closed'), d.closedDate) || `<div class="sigline">Closed ${fmtD(d.closedDate)}</div>`;
+  const stored = caseById(d.id); const dirty = !stored || JSON.stringify(stored) !== JSON.stringify(d);
+  return gateBox('Closure gate — case cannot be closed yet', g, 'Closure gate passed — ready for the closure signature') +
+    `<div class="btns" style="margin-top:8px;align-items:center"><button class="btn primary" data-act="esign" data-coll="cases" data-id="${esc(d.id)}" data-meaning="case.close" ${gateOk(g) && can('manager') && !READONLY ? '' : 'disabled'}>${dirty ? 'Save & e-sign closure' : 'E-sign closure'}</button>${!can('manager') ? '<span class="tiny muted">Closure approval needs the manager role.</span>' : ''}</div>`;
+}
 /* Closure gate — enforced at the data layer. */
 function commitCase(d, isNew) {
   const errs = [];
@@ -1411,11 +1791,13 @@ function commitCase(d, isNew) {
   if (errs.length) { M.error = { title:'Can’t save yet', items: errs }; return false; }
   d.corrective = d.corrective.filter(a => a.desc); d.preventive = d.preventive.filter(a => a.desc);
   const prev = caseById(d.id);
-  if (d.status === 'Closed') {
+  if (d.status === 'Closed' && MODE === 'server' && prev?.status !== 'Closed') { M.error = { title:'Closure blocked', items:['A CAPA case is closed only with the closure e-signature.'] }; return false; }
+  if (d.status === 'Closed' && MODE === 'server') { /* already closed: server requires manager role + reason */ }
+  else if (d.status === 'Closed') {
     const g = closureGate(d);
     if (!gateOk(g)) { M.error = { title:'Closure blocked — the closure gate is not met', items: g.filter(x => !x.ok).map(x => x.txt) }; return false; }
     if (!d.closedDate) d.closedDate = today();
-  } else d.closedDate = '';
+  } else if (MODE === 'local') d.closedDate = '';
   if (isNew || !d.num) d.num = nextCaseNum();
   upsert('cases', d);
   log('capa', `${d.num} ${isNew ? 'opened' : (d.status !== prev?.status ? 'moved to ' + d.status : 'updated')}: ${d.title}`);
@@ -1424,7 +1806,7 @@ function commitCase(d, isNew) {
 A['new-case'] = () => caseEditor(blankCase(), true);
 
 /* Cross-module case creation — one tap, pre-filled from the source record. */
-function caseFrom(kind, id) {
+async function caseFrom(kind, id) {
   const c = blankCase();
   let holdIds = [];
   if (kind === 'swab') {
@@ -1477,8 +1859,10 @@ function caseFrom(kind, id) {
   S.cases.push(c);
   holdIds.forEach(hid => { const h = holdById(hid); if (h) h.caseId = c.id; });
   log('capa', `${c.num} opened from ${linkLabel(c.source) || 'manual entry'}`);
-  save(); closeModal();
-  const show = () => { caseEditor(c, false); toast(`${c.num} created and pre-filled. Review and save.`); };
+  closeModal();
+  if (MODE === 'server') { const r = await commit(); if (!r.ok) { rebuildFromShadow(); render(); toast(r.error, 'crit'); return; } }
+  else saveLocal();
+  const show = () => { caseEditor(caseById(c.id) || c, false); if (M) M.hist = { coll:'cases', id:c.id, kind:'case' }; toast(`${c.num} created and pre-filled. Review and save.`); };
   if (route() !== 'capa') { PENDING = show; location.hash = '#capa'; } else { render(); show(); }
 }
 A['case-from'] = d => caseFrom(d.kind, d.id);
@@ -1501,7 +1885,8 @@ function openRecord(kind, id) {
   const k = KIND[kind]; if (!k) return; const r = S[k.coll].find(x => x.id === id);
   if (!r) { toast('That record no longer exists.', 'crit'); return; }
   closeModal(); $('#qres').hidden = true;
-  if (route() !== k.route) { PENDING = () => k.edit(r); location.hash = '#' + k.route; } else k.edit(r);
+  const go = () => { k.edit(r); if (M) { M.hist = { coll: k.coll, id, kind }; drawModal(); } };
+  if (route() !== k.route) { PENDING = go; location.hash = '#' + k.route; } else go();
 }
 A['open'] = d => openRecord(d.kind, d.id);
 A['del'] = d => {
@@ -1762,9 +2147,9 @@ VIEWS.audit = () => {
       <p style="margin:0">${loads.length} loads received · ${loads.filter(l => l.decision === 'Accept').length} accepted · ${loads.filter(l => l.decision === 'Hold').length} held · ${loads.filter(l => l.decision === 'Reject').length} rejected · ${loads.filter(l => loadEval(l).coaOos.length).length} COA out of spec</p>
     </div></div>
     <h2>Release history</h2>
-    ${rel.length ? `<div class="tw"><table><thead><tr><th>Date</th><th>Lot</th><th>Product</th><th>Released by</th><th>Reviewed by</th><th>Data at release</th></tr></thead><tbody>${rel.map(r => `<tr><td class="nw">${fmtDs(r.date)}</td><td class="nw">${esc(r.code)}</td><td>${esc(r.product)}</td><td>${esc(r.by)}</td><td>${esc(r.reviewer)}</td><td>${esc(r.data)}</td></tr>`).join('')}</tbody></table></div>` : '<p style="margin:0">No lots released in this period.</p>'}
+    ${rel.length ? `<div class="tw"><table><thead><tr><th>Date</th><th>Lot</th><th>Product</th><th>Released by</th><th>Reviewed by</th><th>Data at release</th></tr></thead><tbody>${rel.map(r => `<tr><td class="nw">${fmtDs(r.date)}</td><td class="nw">${esc(r.code)}</td><td>${esc(r.product)}</td><td>${esc(r.by)}${r.releaseSig ? ` <span class="ok">e-signed</span> ${r.at ? esc(new Date(r.at).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' })) : ''}` : ''}</td><td>${esc(r.reviewer)}${r.reviewSig ? ' <span class="ok">e-signed</span>' : ''}</td><td>${esc(r.data)}</td></tr>`).join('')}</tbody></table></div>` : '<p style="margin:0">No lots released in this period.</p>'}
     <div class="sig-line"><div>Reviewed by (QA Manager) / date</div><div>Prepared by / date</div></div>
-    <div class="note">Release and CAPA closure are gated in the system: lots cannot be released without all required tests in spec, a record-review sign-off and no open hold; CAPA cases cannot close without completed actions and a passing effectiveness check.${anySample ? ' Records marked SAMPLE are demonstration data.' : ''}</div>
+    <div class="note">${MODE === 'server' ? `Records are held on a shared server with per-user sign-in. Lot review, lot release and CAPA closure are electronic signatures (printed name, server date/time, meaning) linked to the record version signed; every change is in a time-stamped, append-only audit trail. ` : ''}Release and CAPA closure are gated in the system: lots cannot be released without all required tests in spec, a record-review sign-off and no open hold; CAPA cases cannot close without completed actions and a passing effectiveness check.${anySample ? ' Records marked SAMPLE are demonstration data.' : ''}</div>
   </article>`;
 };
 
@@ -1898,11 +2283,136 @@ A['clear-sample'] = () => {
 };
 A['set-user'] = () => { const n = prompt('Your name or initials, used as the default on new records:', S.user); if (n && n.trim()) { S.user = n.trim(); save(); toast(`Records will default to ${S.user}.`); } };
 $('#menuBtn').addEventListener('click', e => { e.stopPropagation(); const dd = $('#menuDd'); dd.hidden = !dd.hidden; $('#menuBtn').setAttribute('aria-expanded', String(!dd.hidden)); });
-window.addEventListener('storage', e => { if (e.key === LS_KEY && !M) { try { S = Object.assign(emptyState(), JSON.parse(e.newValue)); render(); } catch (err) {} } });
+window.addEventListener('storage', e => { if (MODE === 'local' && e.key === LS_KEY && !M) { try { S = Object.assign(emptyState(), JSON.parse(e.newValue)); render(); } catch (err) {} } });
+
+
+/* ============================================================
+   DATA MENU, AUDIT TRAIL, USERS & ROLES (server mode)
+   ============================================================ */
+function renderMenu() {
+  const items = MODE === 'local' ? [
+      ['set-user','Set my name for records…'], '-', ['download-offline','Download offline copy (data baked in)'], ['export-json','Back up all data (JSON)'], ['import-json','Restore from backup (JSON)…'],
+      '-', ['reload-sample','Reset to SAMPLE data'], ['clear-all','Clear all data (start blank)'], '-', ['connect-server','Connect to a shared server…'] ]
+    : !ME ? [] : [
+      ['change-password','Change my password'], ['sign-out','Sign out'], '-', ['go-trail','Audit trail'], ['export-json','Export a copy of all data (JSON)'],
+      ...(can('admin') ? ['-', ['go-users','Users & roles'], ['verify-chain','Verify audit-trail integrity'], ['server-seed','Load SAMPLE data (empty database only)']] : []),
+      '-', ['disconnect-server','Use local demo mode on this device'] ];
+  $('#menuDd').innerHTML = items.map(i => i === '-' ? '<hr>' : `<button data-act="${i[0]}">${esc(i[1])}</button>`).join('');
+  $('#menuBtn').hidden = !items.length;
+}
+A['go-trail'] = () => { location.hash = '#trail'; };
+A['go-users'] = () => { location.hash = '#users'; };
+A['connect-server'] = () => {
+  const u = prompt('API address of your QA Lab Suite server (for example https://qa-lab-suite-api.yourname.workers.dev):', '');
+  if (!u || !/^https?:\/\/|^\//.test(u.trim())) return;
+  try { localStorage.setItem('qaLabSuite.api', u.trim()); } catch (e) {}
+  location.href = location.pathname;
+};
+A['disconnect-server'] = () => {
+  if (!confirm('Switch this device to local demo mode? Your server data stays on the server; sign in again any time from Data → Connect to a shared server.')) return;
+  try { localStorage.setItem('qaLabSuite.api', ''); localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+  location.href = location.pathname;
+};
+A['verify-chain'] = async () => {
+  try { const r = await api('GET', '/audit/verify'); r.ok ? toast(`Audit trail verified — ${r.count} entries, hash chain intact.`) : toast(`Audit trail integrity FAILED at entry #${r.brokenAt} — the record has been altered outside the application.`, 'crit'); }
+  catch (e) { toast(e.message, 'crit'); }
+};
+A['server-seed'] = async () => {
+  if (!confirm('Load the SAMPLE demonstration data set into the server? This only works while the database has no records, and every sample record is tagged SAMPLE.')) return;
+  try { const seed = buildSeed(); const st = {}; SYNC_COLLS.forEach(c => st[c] = seed[c]); const r = await api('POST', '/admin/seed', { state: st }); await loadServerState(); render(); toast(`${r.count} SAMPLE records loaded.`); }
+  catch (e) { toast(e.message, 'crit'); }
+};
+A['server-remove-sample'] = async () => {
+  const reason = askReason('removing the SAMPLE records'); if (!reason) return;
+  try { const r = await api('POST', '/admin/remove-sample', { reason }); await loadServerState(); render(); toast(`${r.count} SAMPLE records removed (kept in the audit trail).`); }
+  catch (e) { toast(e.message, 'crit'); }
+};
+
+/* ---- audit trail view ---- */
+let TRAIL = null, TRAIL_MORE = false;
+const COLL_KIND = { swabs:'swab', emInv:'inv', sites:'site', lots:'lot', products:'product', loads:'load', materials:'material', holds:'hold', cases:'case', compliance:'comp' };
+async function loadTrail(more) {
+  try {
+    const before = more && TRAIL && TRAIL.length ? '&before=' + TRAIL[TRAIL.length - 1].seq : '';
+    const r = await api('GET', '/audit?limit=100' + before);
+    TRAIL = more ? [...(TRAIL || []), ...r.entries] : r.entries; TRAIL_MORE = r.entries.length === 100;
+  } catch (e) { TRAIL = TRAIL || []; toast(e.message, 'crit'); }
+  const el = $('#trailList'); if (el) el.innerHTML = trailHtml();
+}
+function recLabel(coll, id) {
+  const r = (S[coll] || []).find(x => x.id === id);
+  if (!r) return `${coll} ${id}`;
+  if (coll === 'lots') return 'Lot ' + r.code; if (coll === 'cases') return r.num; if (coll === 'holds') return r.num;
+  if (coll === 'loads') return 'Load ' + r.supplierLot; if (coll === 'swabs') return 'Swab ' + (siteById(r.siteId)?.name || '') + ' ' + fmtDs(r.date);
+  return r.name || r.title || r.item || r.code || id;
+}
+function trailHtml() {
+  if (!TRAIL) return '<div class="empty">Loading audit trail…</div>';
+  if (!TRAIL.length) return '<div class="empty">No entries yet.</div>';
+  return `<div class="tw"><table class="tbl"><thead><tr><th>#</th><th>Date / time</th><th>User</th><th>Action</th><th>Record</th><th>Details</th></tr></thead><tbody>
+    ${TRAIL.map(e => `<tr><td class="tiny muted">${e.seq}</td><td class="tiny" style="white-space:nowrap">${esc(fmtTs(e.ts))}</td><td>${esc(e.userName || '—')}</td><td>${esc(e.action)}${e.version != null ? ` <span class="tiny muted">v${e.version}</span>` : ''}</td>
+      <td>${e.coll && COLL_KIND[e.coll] && e.recordId ? `<button class="btn sm ghost" data-act="history" data-coll="${esc(e.coll)}" data-id="${esc(e.recordId)}" data-kind="${COLL_KIND[e.coll]}">${esc(recLabel(e.coll, e.recordId))}</button>` : esc(e.coll || '')}</td>
+      <td class="small">${esc(e.summary || '')}${e.reason ? `<br><b>Reason:</b> ${esc(e.reason)}` : ''}</td></tr>`).join('')}</tbody></table></div>
+    ${TRAIL_MORE ? '<div class="btns" style="margin-top:10px"><button class="btn" data-act="trail-more">Load older entries</button></div>' : ''}`;
+}
+VIEWS.trail = () => {
+  if (!TRAIL) setTimeout(() => loadTrail(false), 0);
+  return `<div class="pagehead"><div><h1 style="font-size:21px">Audit Trail</h1><p>Every create, change, delete, e-signature and sign-in: computer-generated, time-stamped by the server, append-only, and hash-chained so tampering is detectable. Tap a record to see its full before/after history.</p></div>
+    <div class="btns"><button class="btn" data-act="trail-refresh">Refresh</button>${can('admin') ? '<button class="btn" data-act="verify-chain">Verify integrity</button>' : ''}<button class="btn" data-act="trail-csv">Export CSV</button></div></div>
+  <section class="panel"><div id="trailList">${trailHtml()}</div></section>`;
+};
+A['trail-more'] = () => loadTrail(true);
+A['trail-refresh'] = () => { TRAIL = null; render(); };
+A['trail-csv'] = () => { if (!TRAIL) return; download(`qa-audit-trail-${today()}.csv`, toCSV(['Seq','Timestamp (UTC)','User','Action','Collection','Record ID','Version','Summary','Reason'], TRAIL.map(e => [e.seq, e.ts, e.userName, e.action, e.coll, e.recordId, e.version, e.summary, e.reason]))); };
+
+/* ---- users & roles ---- */
+let USERLIST = null;
+const ROLE_HELP = {
+  viewer: 'Read only — view records, trends, audit trail.',
+  tech: 'Enter and edit QA records; e-sign record reviews.',
+  manager: 'Everything a tech can do, plus e-sign lot release and CAPA closure, disposition holds, edit specs and sites, delete records (with reason).',
+  admin: 'Everything a manager can do, plus manage users and verify the audit trail.' };
+async function loadUsers() { try { USERLIST = (await api('GET', '/users')).users; } catch (e) { USERLIST = []; toast(e.message, 'crit'); } if (route() === 'users') render(); }
+function tempPassword() { const a = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'; const r = crypto.getRandomValues(new Uint8Array(14)); return 'Qa-' + [...r].map(x => a[x % a.length]).join(''); }
+VIEWS.users = () => {
+  if (!USERLIST) setTimeout(loadUsers, 0);
+  return `<div class="pagehead"><div><h1 style="font-size:21px">Users & Roles</h1><p>Each person gets their own account. Accounts are never deleted — deactivate them so their signatures and history stay attributable.</p></div>
+    <div class="btns"><button class="btn primary" data-act="user-new">+ Add user</button></div></div>
+  <div class="cols wide-left"><section class="panel">${!USERLIST ? '<div class="empty">Loading…</div>' : `<div class="list">${USERLIST.map(u => `<div class="rec ${!u.active ? '' : u.lockedUntil && u.lockedUntil > new Date().toISOString() ? 'flag-crit' : 'flag-good'}"><div class="main"><div class="t">${esc(u.name)} ${pill(u.role, u.role === 'admin' ? 'info' : '')}${!u.active ? pill('Deactivated') : ''}${u.mustChange ? pill('Must set password', 'warn', '!') : ''}${u.lockedUntil && u.lockedUntil > new Date().toISOString() ? pill('Locked', 'crit', '✕') : ''}</div><div class="m">${esc(u.email)} · added ${fmtD((u.createdAt || '').slice(0, 10))}</div></div>
+      <div class="acts">${u.lockedUntil && u.lockedUntil > new Date().toISOString() ? `<button class="btn sm" data-act="user-unlock" data-id="${u.id}">Unlock</button>` : ''}<button class="btn sm" data-act="user-edit" data-id="${u.id}">Edit</button></div></div>`).join('')}</div>`}</section>
+  <section class="panel"><h2 style="margin-bottom:8px">Roles</h2><dl class="kv" style="grid-template-columns:auto 1fr;gap:6px 12px">${Object.entries(ROLE_HELP).map(([k, v]) => `<dt><b>${k}</b></dt><dd style="font-weight:400">${esc(v)}</dd>`).join('')}</dl>
+    <p class="tiny muted" style="margin-top:10px">${CFG.separateRelease ? 'Two-person rule is on: the person who e-signs a lot’s record review cannot also e-sign its release.' : 'Two-person rule is off: the reviewer may also release.'}</p></section></div>`;
+};
+function userEditor(u, isNew) {
+  openModal({ title: isNew ? 'Add user' : 'Edit user — ' + esc(u.name), draft: clone(u), saveLabel: isNew ? 'Create user' : 'Save',
+    body: d => `<div class="form two">${F.text('Full name (printed on e-signatures)', 'name', d, { full:true })}
+      ${isNew ? F.text('Email (sign-in ID)', 'email', d, { type:'email', full:true }) : `<div class="fld full"><span>Email (sign-in ID)</span>${esc(d.email)}</div>`}
+      ${F.sel('Role', 'role', d, ['viewer','tech','manager','admin'], { rr:true, hint: esc(ROLE_HELP[d.role] || '') })}
+      ${isNew ? F.text('Temporary password', 'tempPassword', d, { hint:'Give this to the person privately. They must replace it at first sign-in.' }) : F.chk('Account active', 'active', d)}
+      ${!isNew ? F.chk('Reset password to a new temporary password', 'reset', d, { rr:true, full:true }) : ''}
+      ${!isNew && d.reset ? F.text('New temporary password', 'tempPassword', d, { full:true }) : ''}
+      ${!isNew ? F.text('Reason for change', 'reason', d, { full:true, ph:'Recorded in the audit trail' }) : ''}</div>`,
+    onSave: () => false,
+    submitAsync: async d => {
+      try {
+        if (isNew) await api('POST', '/users', { name: d.name, email: d.email, role: d.role, tempPassword: d.tempPassword });
+        else {
+          const body = { reason: d.reason || undefined };
+          if (d.name !== u.name) body.name = d.name; if (d.role !== u.role) body.role = d.role; if (!!d.active !== !!u.active) body.active = !!d.active;
+          if (d.reset) body.tempPassword = d.tempPassword;
+          await api('PATCH', '/users/' + u.id, body);
+        }
+        closeModal(); USERLIST = null; render(); toast(isNew ? `User ${d.name} created. Share the temporary password privately.` : 'User updated.');
+        return true;
+      } catch (e) { M.error = { title:'Not saved', items:[e.message] }; return false; }
+    } });
+}
+A['user-new'] = () => userEditor({ name:'', email:'', role:'tech', tempPassword: tempPassword() }, true);
+A['user-edit'] = d => { const u = (USERLIST || []).find(x => x.id === d.id); if (u) userEditor(Object.assign({}, u, { reset:false, tempPassword: tempPassword(), reason:'' }), false); };
+A['user-unlock'] = async d => { try { await api('PATCH', '/users/' + d.id, { unlock: true }); USERLIST = null; render(); toast('Account unlocked.'); } catch (e) { toast(e.message, 'crit'); } };
 
 /* ---------- boot ---------- */
-loadState();
-render();
+boot();
 </script>
 </body>
 </html>
