@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>QA Lab Suite</title>
-<meta name="qa-api" content="">
+<meta name="qa-api" content="https://qa-lab-suite-api.alek-n-berger.workers.dev">
 <meta name="description" content="Connected quality-assurance workspace: environmental monitoring, finished product release, incoming COA control, holds and CAPA, trending, audit packet and compliance checklist.">
 <style>
 :root{
@@ -2267,6 +2267,7 @@ $('#importFile').addEventListener('change', e => {
 });
 A['download-offline'] = () => {
   const doc = PRISTINE.cloneNode(true); const bakedAt = new Date().toISOString();
+  const meta = doc.querySelector('meta[name="qa-api"]'); if (meta) meta.setAttribute('content', ''); // offline copies always open in demo mode
   doc.querySelector('#baked-data').textContent = JSON.stringify({ bakedAt, state: S }).replace(/</g, '\\u003c');
   download(`qa-lab-suite-offline-${today()}.html`, '<!DOCTYPE html>\n' + doc.outerHTML, 'text/html;charset=utf-8');
   toast('Offline copy downloaded — open it from any folder; your current data is baked in.');

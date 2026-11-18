@@ -21,7 +21,7 @@ http.createServer(async (req, res) => {
     if (!url.pathname.startsWith('/api')) {
       if (url.pathname !== '/' && url.pathname !== '/index.html') { res.writeHead(404).end('Not found'); return; }
       let html = await readFile(indexUrl, 'utf8');
-      html = html.replace('<meta name="qa-api" content="">', `<meta name="qa-api" content="/api">`);
+      html = html.replace(/<meta name="qa-api" content="[^"]*">/, '<meta name="qa-api" content="/api">');
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }).end(html); return;
     }
     const chunks = []; for await (const c of req) chunks.push(c);
